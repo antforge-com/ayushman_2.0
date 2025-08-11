@@ -1,31 +1,31 @@
 // product-price.js
-// Import Firebase modules from the shared config file
-import { db, auth } from './firebase-config.js';
-import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// Import necessary Firebase modules from the shared config file
+import { db, auth, appId, initializeFirebase, collection, getDocs } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+// Access DOM elements
 const materialRowsDiv = document.getElementById('materialRows');
+const totalMaterialCostSpan = document.getElementById('totalMaterialCost');
+const totalBottleCostSpan = document.getElementById('totalBottleCost');
+const totalCostSpan = document.getElementById('totalCost');
+const numBottlesInput = document.getElementById('numBottles');
+const costPerBottleInput = document.getElementById('costPerBottle');
+const calcBtn = document.getElementById('calcBtn');
+const pricingResultsDiv = document.getElementById('pricingResults');
+
 let materialRows = []; // Stores the current rows for material selection
 let materials = []; // Stores all materials fetched from Firestore
 
 /**
- * Displays a status message to the user (currently disabled except error logs).
- * @param {string} message - The message to display.
- * @param {string} type - 'success', 'error', or 'loading'.
+ * Fetches all materials from Firebase.
+ * @param {string} currentUserId - The ID of the currently logged-in user.
  */
-function displayStatus(message, type) {
-    if (type === 'error') {
-        console.error(`[Error] ${message}`);
-    }
-}
-
-/**
- * Fetches all materials from Firestore.
- */
-async function fetchMaterials() {
+async function fetchMaterials(currentUserId) {
     console.log('fetchMaterials: Attempting to fetch materials...');
     try {
-        const materialsCollectionRef = collection(db, "materials");
+        // Reference the collection using the correct user-specific path
+        const collectionPath = `/artifacts/${appId}/users/${currentUserId}/materials`;
+        const materialsCollectionRef = collection(db, collectionPath);
         const materialsSnap = await getDocs(materialsCollectionRef);
         console.log('fetchMaterials: Firestore query completed.');
 
@@ -34,52 +34,22 @@ async function fetchMaterials() {
 
         console.log('Loaded materials:', materials);
 
-        // Sort materials by name or fallback key
-        materials.sort((a, b) => ((a.material || a.materialName || '').localeCompare(b.material || b.materialName || '')));
+        // Sort materials by name
+        materials.sort((a, b) => ((a.material || '').localeCompare(b.material || '')));
 
+        // If no materials are found, display a message
         if (materials.length === 0) {
-            displayStatus('No materials found in the database. Please add materials first.', 'error');
-            let errorDiv = document.getElementById('materialErrorMsg');
-            if (!errorDiv) {
-                errorDiv = document.createElement('div');
-                errorDiv.id = 'materialErrorMsg';
-                errorDiv.style.background = '#fee2e2';
-                errorDiv.style.color = '#991b1b';
-                errorDiv.style.padding = '1rem';
-                errorDiv.style.margin = '1rem 0';
-                errorDiv.style.borderRadius = '0.5rem';
-                errorDiv.style.textAlign = 'center';
-                const card = document.querySelector('.card');
-                if (card) card.parentNode.insertBefore(errorDiv, card.nextSibling);
-            }
-            errorDiv.textContent = 'No materials found in the database. Please add materials first.';
+            materialRowsDiv.innerHTML = '<tr><td colspan="6" class="text-center italic text-gray-500 py-4">No materials found. Please add materials first.</td></tr>';
         } else {
-            let errorDiv = document.getElementById('materialErrorMsg');
-            if (errorDiv) errorDiv.remove();
+            // If no material rows exist, add one
+            if (materialRows.length === 0) {
+                materialRows.push({ materialId: '', quantity: 0, unit: 'kg', costPerUnit: 0, totalCost: 0 });
+            }
+            renderRows();
         }
-
-        // Initialize rows if empty
-        if (materialRows.length === 0) {
-            materialRows.push({ materialId: '', costPerKg: 0, quantity: 0, totalCost: 0 });
-        }
-        renderRows();
     } catch (err) {
         console.error("Error fetching materials for calculator:", err);
-        displayStatus(`Error fetching materials: ${err.message}`, 'error');
-        let errorDiv = document.getElementById('materialErrorMsg');
-        if (!errorDiv) {
-            errorDiv = document.createElement('div');
-            errorDiv.id = 'materialErrorMsg';
-            errorDiv.style.background = '#fee2e2';
-            errorDiv.style.color = '#991b1b';
-            errorDiv.style.padding = '1rem';
-            errorDiv.style.margin = '1rem 0';
-            errorDiv.style.borderRadius = '0.5rem';
-            errorDiv.style.textAlign = 'center';
-            const card = document.querySelector('.card');
-            if (card) card.parentNode.insertBefore(errorDiv, card.nextSibling);
-        }
-        errorDiv.textContent = 'Error fetching materials: ' + err.message;
+        materialRowsDiv.innerHTML = '<tr><td colspan="6" class="text-center italic text-red-700 py-4">Error loading materials.</td></tr>';
     }
 }
 
@@ -92,34 +62,41 @@ function renderRows() {
             <td style="padding:0.75rem 0.5rem;">
                 <select class="materialSelect" data-idx="${idx}" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
                     <option value="">Select Material</option>
-                    ${materials.map(m => `<option value="${m.id}" ${row.materialId === m.id ? 'selected' : ''}>${m.material || m.materialName || ''}</option>`).join('')}
+                    ${materials.map(m => `<option value="${m.id}" ${row.materialId === m.id ? 'selected' : ''}>${m.material || ''}</option>`).join('')}
                 </select>
             </td>
-            <td style="padding:0.75rem 0.5rem;text-align:center;">
-                <input class="qtyInput" data-idx="${idx}" type="number" min="0" step="0.01" value="${row.quantity || ''}" style="width:80px;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
+            <td style="padding:0.75rem 0.5rem;">
+                <input class="qtyInput text-center" data-idx="${idx}" type="number" min="0" step="any" value="${row.quantity || ''}" style="width:80px;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
             </td>
-            <td style="padding:0.75rem 0.5rem;text-align:center;">
-                <input class="costInput" data-idx="${idx}" type="number" min="0" step="0.01" value="${row.costPerKg || ''}" style="width:80px;padding:0.5rem;border:1px solid #ddd;border-radius:4px;" disabled>
+            <td style="padding:0.75rem 0.5rem;">
+                <select class="unitSelect text-center" data-idx="${idx}" style="width:70px;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
+                    <option value="kg" ${row.unit === 'kg' ? 'selected' : ''}>kg</option>
+                    <option value="gram" ${row.unit === 'gram' ? 'selected' : ''}>gram</option>
+                </select>
             </td>
-            <td style="padding:0.75rem 0.5rem;text-align:center;">
-                ₹${(row.totalCost || 0).toFixed(2)}
+            <td style="padding:0.75rem 0.5rem;">
+                <input class="costInput text-center" data-idx="${idx}" type="number" min="0" step="0.01" value="${(row.costPerUnit || 0).toFixed(2)}" style="width:80px;padding:0.5rem;border:1px solid #ddd;border-radius:4px;" disabled>
+            </td>
+            <td style="padding:0.75rem 0.5rem;">
+                <span id="totalCost-${idx}">₹${(row.totalCost || 0).toFixed(2)}</span>
             </td>
             <td style="padding:0.75rem 0.5rem;text-align:right;">
-                <button class="btn" style="background:#dc3545;color:#fff;padding:0.25rem 0.75rem;border-radius:4px;font-size:0.875rem;" data-idx="${idx}" onclick="removeRow(${idx})">Remove</button>
+                <button class="remove-btn" data-idx="${idx}" onclick="removeRow(${idx})"><i class="fa-solid fa-trash-can"></i></button>
             </td>
         </tr>
     `).join('');
 
-    // Attach event listeners
+    // Attach event listeners to the new elements
     document.querySelectorAll('.materialSelect').forEach(sel => sel.onchange = onRowChange);
     document.querySelectorAll('.qtyInput').forEach(inp => inp.oninput = onRowChange);
+    document.querySelectorAll('.unitSelect').forEach(sel => sel.onchange = onRowChange);
 
     updateTotals();
 }
 
 /**
- * Handles changes in material row inputs (select, quantity).
- * @param {Event} e - The change event.
+ * Handles changes in the material row inputs.
+ * @param {Event} e - the change event.
  */
 function onRowChange(e) {
     const idx = +e.target.dataset.idx;
@@ -128,29 +105,50 @@ function onRowChange(e) {
     if (e.target.classList.contains('materialSelect')) {
         row.materialId = e.target.value;
         const mat = materials.find(m => m.id === row.materialId);
+        
+        if (mat) {
+            // Get price per unit and quantity from Firestore.
+            let pricePerUnit = mat.pricePerUnit;
+            let unit = mat.quantityUnit;
+            let quantity = mat.quantity;
+            
+            // Set quantity and price based on the unit received from Firestore (kg or gram)
+            row.unit = unit;
+            row.quantity = quantity;
+            row.costPerUnit = pricePerUnit;
+
+        } else {
+            row.quantity = 0;
+            row.costPerUnit = 0;
+        }
+
+    } else if (e.target.classList.contains('qtyInput')) {
+        row.quantity = +e.target.value;
+    } else if (e.target.classList.contains('unitSelect')) {
+        row.unit = e.target.value;
+        const mat = materials.find(m => m.id === row.materialId);
 
         if (mat) {
-            // Calculate inclusive cost per kg = total / quantity
-            if (mat.quantity && mat.total) {
-                row.costPerKg = mat.total / mat.quantity;
-            } else {
-                row.costPerKg = mat.pricePerKg || 0;
+            const totalCalculatedPrice = mat.price;
+            let quantityInGrams = mat.quantityUnit === 'kg' ? mat.quantity * 1000 : mat.quantity;
+
+            // Recalculate pricePerUnit based on the new unit
+            if (row.unit === 'kg') {
+                row.costPerUnit = totalCalculatedPrice / (quantityInGrams / 1000);
+            } else if (row.unit === 'gram') {
+                row.costPerUnit = totalCalculatedPrice / quantityInGrams;
             }
-        } else {
-            row.costPerKg = 0;
         }
     }
-    if (e.target.classList.contains('qtyInput')) {
-        row.quantity = +e.target.value;
-    }
+    
+    row.totalCost = row.quantity * (row.costPerUnit || 0);
 
-    row.totalCost = (row.costPerKg || 0) * (row.quantity || 0);
-    renderRows();  // Re-render rows including totals
+    renderRows();
 }
 
 /**
  * Removes a material row.
- * @param {number} idx - Index of the row to remove.
+ * @param {number} idx - The index of the row to remove.
  */
 window.removeRow = function(idx) {
     materialRows.splice(idx, 1);
@@ -158,38 +156,37 @@ window.removeRow = function(idx) {
 };
 
 /**
- * Updates the total costs shown on the page.
+ * Updates the total costs displayed on the page.
  */
 function updateTotals() {
     const totalMaterial = materialRows.reduce((sum, r) => sum + (r.totalCost || 0), 0);
-    document.getElementById('totalMaterialCost').textContent = `₹${totalMaterial.toFixed(2)}`;
+    totalMaterialCostSpan.textContent = `₹${totalMaterial.toFixed(2)}`;
 
-    const numBottles = +document.getElementById('numBottles').value;
-    const costPerBottle = +document.getElementById('costPerBottle').value;
+    const numBottles = +numBottlesInput.value || 0;
+    const costPerBottle = +costPerBottleInput.value || 0;
     const totalBottleCost = numBottles * costPerBottle;
-    document.getElementById('totalBottleCost').textContent = `₹${totalBottleCost.toFixed(2)}`;
+    totalBottleCostSpan.textContent = `₹${totalBottleCost.toFixed(2)}`;
 
     const overallTotalCost = totalMaterial + totalBottleCost;
-    document.getElementById('totalCost').textContent = `₹${overallTotalCost.toFixed(2)}`;
+    totalCostSpan.textContent = `₹${overallTotalCost.toFixed(2)}`;
 }
 
-// Add new material row button
+// Add a new material row button
 document.getElementById('addRowBtn').onclick = () => {
-    materialRows.push({ materialId: '', costPerKg: 0, quantity: 0, totalCost: 0 });
+    materialRows.push({ materialId: '', quantity: 0, unit: 'kg', costPerUnit: 0, totalCost: 0 });
     renderRows();
 };
 
-// Update totals when bottle info changes
-document.getElementById('numBottles').oninput = updateTotals;
-document.getElementById('costPerBottle').oninput = updateTotals;
+// Update totals when bottle information changes
+numBottlesInput.oninput = updateTotals;
+costPerBottleInput.oninput = updateTotals;
 
-// Calculate pricing on button click
-document.getElementById('calcBtn').onclick = () => {
+// Calculate price when the button is clicked
+calcBtn.onclick = () => {
     const totalMaterial = materialRows.reduce((sum, r) => sum + (r.totalCost || 0), 0);
-    const numBottles = +document.getElementById('numBottles').value;
-    const costPerBottle = +document.getElementById('costPerBottle').value;
+    const numBottles = +numBottlesInput.value;
+    const costPerBottle = +costPerBottleInput.value;
 
-    const pricingResultsDiv = document.getElementById('pricingResults');
     if (numBottles <= 0) {
         pricingResultsDiv.style.display = 'block';
         pricingResultsDiv.innerHTML = `
@@ -204,8 +201,8 @@ document.getElementById('calcBtn').onclick = () => {
     const baseCost = totalMaterial + bottleCost;
 
     // Your margin calculations
-    const margin1 = baseCost * 1.13;              // 113% margin on base cost
-    const margin2 = (baseCost + margin1) * 0.12;  // 12% margin on (baseCost + margin1)
+    const margin1 = baseCost * 0.13; // 13% margin on base cost
+    const margin2 = (baseCost + margin1) * 0.12; // 12% margin on (baseCost + margin1)
     const totalSellingPrice = baseCost + margin1 + margin2;
     const grossPerBottle = totalSellingPrice / numBottles;
 
@@ -218,14 +215,56 @@ document.getElementById('calcBtn').onclick = () => {
     document.getElementById('resultPricePerBottle').textContent = `₹${grossPerBottle.toFixed(2)}`;
 };
 
-// On DOM load, wait for Firebase auth then fetch materials
-document.addEventListener('DOMContentLoaded', () => {
+// When the DOM is loaded, wait for Firebase auth, then fetch materials
+document.addEventListener('DOMContentLoaded', async () => {
+    // First, let Firebase initialize completely
+    await initializeFirebase();
     onAuthStateChanged(auth, user => {
         if (user) {
             console.log('User signed in, fetching materials...');
-            fetchMaterials();
+            fetchMaterials(user.uid);
         } else {
-            console.log('User not signed in yet.');
+            console.log('User not signed in, redirecting to login...');
+            window.location.href = 'login.html';
         }
     });
+});
+
+// Drawer toggle logic
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('hamburgerBtn');
+    const drawer = document.getElementById('drawerNav');
+    const backdrop = document.getElementById('backdrop');
+
+    if (btn && drawer && backdrop) {
+        function openDrawer() {
+            drawer.classList.add('open');
+            backdrop.classList.add('open');
+            drawer.setAttribute('aria-hidden', 'false');
+            btn.setAttribute('aria-expanded', 'true');
+            const firstLink = drawer.querySelector('a');
+            if (firstLink) firstLink.focus({ preventScroll: true });
+            document.body.style.overflow = 'hidden';
+        }
+        function closeDrawer() {
+            drawer.classList.remove('open');
+            backdrop.classList.remove('open');
+            drawer.setAttribute('aria-hidden', 'true');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.focus({ preventScroll: true });
+            document.body.style.overflow = '';
+        }
+        btn.addEventListener('click', () => {
+            drawer.classList.contains('open') ? closeDrawer() : openDrawer();
+        });
+        backdrop.addEventListener('click', closeDrawer);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+        });
+        drawer.addEventListener('click', (e) => {
+            if (e.target.closest('a[href]')) closeDrawer();
+        });
+    } else {
+        console.error('Drawer elements not found. Check your HTML IDs.');
+    }
 });

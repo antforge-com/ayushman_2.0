@@ -2,786 +2,615 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="Product price calculation application.">
-    <title>Product Price - Product App</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#234123">
+  <meta name="description" content="Ayurvedic product price calculation app">
+  <title>Product Price Calculator</title>
 
-    <!-- PWA / Icons -->
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Product App">
+  <!-- Tailwind CSS for modern styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  
+  <style>
+    /* Custom styles for this page */
+    :root {
+      --bg: #ffffff;
+      /* Changed to pure white */
+      --surface: #ffffff;
+      --primary: #234123;
+      --primary-600: #1d361d;
+      --accent: #7cc58f;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+      --radius: 14px;
+    }
 
-    <!-- Tailwind CSS for modern styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s ease;
+    }
 
-    <style>
-        :root {
-            --bg: #ffffff;
-            --surface: #ffffff;
-            --primary: #234123;
-            --primary-600: #1d361d;
-            --accent: #7cc58f;
-            --text: #1f2937;
-            --muted: #6b7280;
-            --border: #e5e7eb;
-            --shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
-            --radius: 14px;
-        }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
 
-        /* Base */
-        * {
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
 
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            background: var(--bg);
-            color: var(--text);
-        }
+    .topbar {
+      position: fixed;
+      inset: 0 0 auto 0;
+      height: 64px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 14px;
+      z-index: 200;
+    }
 
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
+    .left-logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        img {
-            display: block;
-            max-width: 100%;
-        }
+    .left-logo-wrap img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border);
+    }
 
-        /* Top bar (reused from index.html) */
-        .topbar {
-            position: fixed;
-            inset: 0 0 auto 0;
-            height: 64px;
-            background: #ffffff;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 0 14px;
-            z-index: 200;
-        }
+    .hamburger-btn {
+      width: 42px;
+      height: 42px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
 
-        .hamburger-btn {
-            width: 42px;
-            height: 42px;
-            border: none;
-            background: transparent;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
+    .hamburger {
+      width: 24px;
+      height: 2px;
+      background: var(--primary);
+      position: relative;
+      display: block;
+    }
 
-        .hamburger {
-            width: 24px;
-            height: 2px;
-            background: var(--primary);
-            position: relative;
-            display: block;
-        }
+    .hamburger::before,
+    .hamburger::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      width: 24px;
+      height: 2px;
+      background: var(--primary);
+      transition: transform 0.2s ease, top 0.2s ease, opacity 0.2s ease;
+    }
 
-        .hamburger::before,
-        .hamburger::after {
-            content: "";
-            position: absolute;
-            left: 0;
-            width: 24px;
-            height: 2px;
-            background: var(--primary);
-            transition: transform 0.2s ease, top 0.2s ease, opacity 0.2s ease;
-        }
+    .hamburger::before {
+      top: -7px;
+    }
 
-        .hamburger::before {
-            top: -7px;
-        }
+    .hamburger::after {
+      top: 7px;
+    }
 
-        .hamburger::after {
-            top: 7px;
-        }
-        
-        /* New styles for the left-aligned circular logo */
-        .left-logo-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .topbar-logo {
+      height: 84px;
+      width: auto;
+    }
 
-        .left-logo-wrap img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--border);
-        }
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      transform: translateX(-100%);
+      transition: transform .25s ease;
+      z-index: 300;
+      padding: 78px 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
 
-        .topbar-logo {
-            height: 84px;
-            width: auto;
-        }
+    .drawer.open {
+      transform: translateX(0);
+    }
 
-        /* Drawer */
-        .drawer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 260px;
-            background: #ffffff;
-            border-right: 1px solid #e0e0e0;
-            transform: translateX(-100%);
-            transition: transform .25s ease;
-            z-index: 300;
-            padding: 78px 0 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+    .drawer-logo {
+      text-align: center;
+      padding: 0 16px 12px 16px;
+    }
 
-        .drawer.open {
-            transform: translateX(0);
-        }
+    .drawer-logo img {
+      max-height: 80px;
+      height: auto;
+      margin: 0 auto 8px;
+    }
 
-        .drawer-logo {
-            text-align: center;
-            padding: 0 16px 12px 16px;
-        }
+    .drawer-link {
+      padding: 12px 18px;
+      font-size: 1rem;
+      color: var(--primary);
+      font-weight: 600;
+      border-left: 4px solid transparent;
+    }
 
-        .drawer-logo img {
-            max-height: 80px;
-            height: auto;
-            margin: 0 auto 8px;
-        }
+    .drawer-link:hover {
+      background: #f0f0f0;
+    }
 
-        .drawer-link {
-            padding: 12px 18px;
-            font-size: 1rem;
-            color: var(--primary);
-            font-weight: 600;
-            border-left: 4px solid transparent;
-        }
+    .drawer-link.active {
+      background: #f0f0f0;
+      border-left-color: var(--primary);
+    }
 
-        .drawer-link:hover {
-            background: #f0f0f0;
-        }
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.28);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .2s ease, visibility .2s ease;
+      z-index: 250;
+    }
 
-        .drawer-link.active {
-            background: #f0f0f0;
-            border-left-color: var(--primary);
-        }
+    .backdrop.open {
+      opacity: 1;
+      visibility: visible;
+    }
 
-        .backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.28);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity .2s ease, visibility .2s ease;
-            z-index: 250;
-        }
+    .main {
+      padding: 84px 24px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .main-heading {
+      font-size: clamp(2rem, 3vw, 2.5rem);
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
 
-        .backdrop.open {
-            opacity: 1;
-            visibility: visible;
-        }
+    .main-section-title {
+      margin: 26px 2px 14px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
 
-        /* Main layout and form container */
-        .main {
-            padding: 84px 24px 32px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        /* Heading styling */
-        .main-heading {
-            font-size: clamp(2rem, 3vw, 2.5rem);
-            font-weight: 800;
-            color: var(--primary);
-            margin-bottom: 1rem;
-            letter-spacing: -0.5px;
-            line-height: 1.2;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 0.5rem;
-        }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
 
-        /* Card container */
-        .card {
-            width: 100%;
-            max-width: 800px;
-            margin: 0 auto 1.5rem auto;
-            border-radius: var(--radius);
-            box-sizing: border-box;
-            padding: 1.5rem;
-            background: #fff;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            overflow-x: auto;
-            border: 1px solid var(--border);
-        }
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        /* Responsive tables */
-        .ingredients-table table {
-            width: 100%;
-            min-width: 500px;
-            border-collapse: collapse;
-            font-size: 1em;
-        }
+    .ingredients-table {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* for smooth scrolling on iOS */
+    }
 
-        .ingredients-table th,
-        .ingredients-table td {
-            font-size: 1em;
-            padding: 0.5rem;
-            word-break: break-word;
-        }
+    .ingredients-table table {
+      width: 100%;
+      min-width: 600px; /* Increased min-width for better display on small screens */
+      border-collapse: collapse;
+      font-size: 1em;
+      background: var(--surface);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px 0 rgba(38, 58, 74, 0.03);
+    }
 
-        /* Form inputs */
-        input[type="number"],
-        input[type="text"],
-        select {
-            width: 100%;
-            padding: 0.5rem;
-            font-size: 1rem;
-            box-sizing: border-box;
-            border-radius: 4px;
-            border: 1px solid #d1d5db;
-            margin-bottom: 0.25rem;
-        }
+    .ingredients-table th, .ingredients-table td {
+      font-size: 1em;
+      padding: 0.7rem 0.5rem;
+      word-break: break-word;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    
+    .ingredients-table th:first-child, .ingredients-table-td:first-child {
+      text-align: left;
+    }
 
-        label {
-            font-weight: 600;
-        }
+    .ingredients-table th:last-child, .ingredients-table td:last-child {
+      text-align: right;
+    }
 
-        .btn {
-            border-radius: 8px;
-            font-size: 1rem;
-            box-sizing: border-box;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.15s;
-        }
-        
-        .btn-add-ingredient {
-            width: 100%;
-            background: var(--surface);
-            color: #000;
-            border: 1px dashed #ccc;
-            padding: 0.75rem;
-            font-weight: 500;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-        }
+    .ingredients-table th {
+      background: #f8f8f8;
+      color: var(--text);
+      font-weight: 600;
+    }
+    
+    .ingredients-table tbody tr:last-child td {
+        border-bottom: none;
+    }
 
-        .btn-add-ingredient:hover {
-            background-color: #f0f0f0;
-            transform: translateY(-1px);
-        }
+    input[type="number"],
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      box-sizing: border-box;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      margin-bottom: 0.25rem;
+      background: #fafafa;
+      color: var(--text);
+      transition: border 0.15s;
+    }
 
-        .btn-calculate {
-            width: 100%;
-            background: var(--primary);
-            color: white;
-            padding: 0.85rem;
-            font-weight: 700;
-            transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-            box-shadow: 0 4px 12px rgba(35, 65, 35, 0.2);
-        }
+    input[type="number"]:focus,
+    input[type="text"]:focus,
+    select:focus {
+      border: 1.5px solid var(--primary);
+      outline: none;
+    }
+    
+    label {
+      font-weight: 600;
+      color: var(--text);
+    }
 
-        .btn-calculate:hover {
-            background: var(--primary-600);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(35, 65, 35, 0.25);
-        }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: .72rem 1rem;
+      border-radius: 10px;
+      border: 1px solid #cfd8dc;
+      background: #fff;
+      color: #111;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .1s ease, box-shadow .2s ease, background .2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      width: 100%;
+    }
 
-        .btn-remove-item {
-            background: #ff5252;
-            color: #fff;
-            border: none;
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-            margin: auto;
-        }
-        
-        .btn-remove-item:hover {
-            background: #d63d3d;
-            transform: scale(1.1);
-        }
+    .btn:hover {
+      transform: translateY(-2px);
+      background: #f0f0f0;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
 
-        /* Pricing results grid */
-        #pricingResults .results-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-        }
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(35, 65, 35, 0.2);
+    }
 
-        .result-box {
-            padding: 1rem;
-            background: #f8f8f8;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid var(--border);
-        }
-        
-        .result-box.total {
-            background: var(--primary);
-            color: white;
-            padding: 1.5rem 1rem;
-        }
+    .btn-primary:hover {
+      background: var(--primary-600);
+      border-color: var(--primary-600);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(35, 65, 35, 0.25);
+    }
+    
+    #addRowBtn {
+      border: 1.5px solid var(--primary); /* Updated to solid primary green border */
+      background: var(--primary); /* Updated to solid primary green background */
+      color: #fff; /* Updated text color to white for contrast */
+      width: fit-content; /* Text के हिसाब से width */
+      padding: 0.35rem 0.75rem; /* Compact padding */
+      font-size: 0.9rem; /* थोड़ा छोटा font */
+      white-space: nowrap; /* Text wrap ना हो */
+    }
 
-        /* Responsive tweaks */
-        @media (max-width: 900px) {
-            .main {
-                padding: 84px 1.5rem 1.5rem;
-            }
-        }
+    #addRowBtn:hover {
+      background: var(--primary-600); /* Darker green on hover */
+      border-color: var(--primary-600);
+    }
+    
+    .remove-btn {
+      background: #dc3545;
+      color: #fff;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      border: none;
+      margin-left: 10px; /* Added margin for spacing */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+    }
 
-        @media (max-width: 700px) {
-            .card {
-                max-width: 100vw;
-                border-radius: 0;
-            }
+    .remove-btn:hover {
+      background: #c82333;
+    }
+    
+    #pricingResults .results-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
 
-            .ingredients-table table {
-                min-width: 420px;
-                font-size: 0.98em;
-            }
-        }
+    #pricingResults .results-grid > div {
+      border-radius: 12px;
+      box-shadow: 0 1px 4px 0 rgba(38, 58, 74, 0.04);
+      border: 1.5px solid var(--border);
+    }
 
-        @media (max-width: 640px) {
-            .topbar-logo {
-                height: 40px;
-            }
+    /* Media query for tablets and smaller desktops */
+    @media (max-width: 1024px) {
+      .main {
+        padding: 84px 16px 24px;
+      }
+    }
 
-            .main {
-                padding: 84px 14px 24px;
-            }
+    /* Media query for smaller tablets and large phones */
+    @media (max-width: 768px) {
+      .topbar-logo {
+          height: 50px;
+      }
+      .ingredients-table table {
+        min-width: 600px;
+      }
+      #pricingResults .results-grid {
+        grid-template-columns: 1fr;
+      }
+    }
 
-            .drawer {
-                width: 80vw;
-            }
-            
-            .main-heading {
-                font-size: 2rem;
-            }
+    /* Media query for mobile phones */
+    @media (max-width: 640px) {
+      .topbar-logo {
+          height: 40px;
+      }
+      .drawer {
+          width: 80vw;
+      }
+      .main {
+          padding: 80px 14px 24px;
+      }
+      .main-heading {
+          font-size: 1.8rem;
+      }
+      .ingredients-table {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .ingredients-table table {
+        min-width: 500px;
+        font-size: 0.9em;
+      }
+      .card {
+        padding: 14px;
+      }
+      #pricingResults .results-grid {
+        grid-template-columns: 1fr;
+      }
+      .remove-btn {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.8rem;
+      }
+    }
 
-            .card {
-                max-width: 100vw !important;
-                width: 100vw !important;
-                margin: 0 !important;
-                border-radius: 0 !important;
-                padding: 1rem 0.5rem !important;
-                overflow-x: auto;
-            }
+    .message-success {
+      color: #286d42;
+      background: #e6f7e7;
+      border-left: 4px solid #286d42;
+      padding: 0.75em 1em;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
 
-            .ingredients-table table {
-                font-size: 0.95em;
-                min-width: 360px;
-            }
+    .message-error {
+      color: #872a2a;
+      background: #f9e6e7;
+      border-left: 4px solid #872a2a;
+      padding: 0.75em 1em;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
 
-            .ingredients-table th,
-            .ingredients-table td {
-                padding: 0.4rem 0.25rem;
-                font-size: 0.92em;
-            }
-
-            #pricingResults .results-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-        }
-        
-        /* Messages */
-        .message-success {
-            color: #286d42;
-            background: #e6f7e7;
-            border-left: 4px solid #286d42;
-            padding: 0.75em 1em;
-            border-radius: 4px;
-        }
-
-        .message-error {
-            color: #872a2a;
-            background: #f9e6e7;
-            border-left: 4px solid #872a2a;
-            padding: 0.75em 1em;
-            border-radius: 4px;
-        }
-
-        .hidden {
-            display: none;
-        }
-    </style>
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 
 <body>
-    <!-- Top bar with hamburger + brand -->
-    <header class="topbar" role="banner">
-        <div class="left-logo-wrap">
-            <!-- Left-side circular logo -->
-            <img src="assets/owner.jpg" alt="User Logo">
-            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open navigation" aria-controls="drawerNav" aria-expanded="false">
-                <span class="hamburger" aria-hidden="true"></span>
-            </button>
-        </div>
-        <!-- Right-side brand logo -->
-        <img src="assets/vasavi-logo.png" alt="Vasavi Ayurveda Logo" class="topbar-logo">
-    </header>
+  <!-- Top bar with hamburger + brand -->
+  <header class="topbar" role="banner">
+      <div class="left-logo-wrap">
+          <img src="assets/owner.jpg" onerror="this.onerror=null; this.src='https://placehold.co/40x40/e5e7eb/6b7280?text=O'" alt="User Logo">
+          <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open navigation" aria-controls="drawerNav" aria-expanded="false">
+              <span class="hamburger" aria-hidden="true"></span>
+          </button>
+      </div>
+      <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/84x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo" class="topbar-logo">
+  </header>
 
-    <!-- Drawer navigation -->
-    <nav class="drawer" id="drawerNav" aria-hidden="true">
-        <div class="drawer-logo">
-            <!-- लोगो को सीधे फ़ाइल से लोड किया गया है -->
-            <img src="assets/vasavi-logo.png" alt="Vasavi Ayurveda Logo">
-        </div>
-        <a href="index.html" class="drawer-link">Home</a>
-        <a href="add-material.html" class="drawer-link">Add Material</a>
-        <a href="product-price.html" class="drawer-link active">Product Price</a>
-        <a href="drug-entry.html" class="drawer-link">Add Drug</a>
-        <a href="all-materials.html" class="drawer-link">All Purchases</a>
-    </nav>
+  <!-- Drawer navigation -->
+  <nav class="drawer" id="drawerNav" aria-hidden="true">
+      <div class="drawer-logo">
+          <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/80x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo">
+      </div>
+      <a href="index.html" class="drawer-link">Home</a>
+      <a href="add-material.html" class="drawer-link">Add Material</a>
+      <a href="product-price.html" class="drawer-link active">Product Price</a>
+      <a href="drug-entry.html" class="drawer-link">Add Drug</a>
+      <a href="all-materials.html" class="drawer-link">All Purchases</a>
+  </nav>
 
-    <!-- Backdrop -->
-    <div class="backdrop" id="backdrop"></div>
+  <!-- Backdrop -->
+  <div class="backdrop" id="backdrop"></div>
 
-    <!-- Main content -->
-    <main class="main">
-        <h2 class="main-heading">Product Price Calculator</h2>
-
-        <div id="calculatorCard" class="card">
-            <div style="margin-bottom:2rem;">
-                <h3 style="font-size:1.2rem;font-weight:600;margin-bottom:1rem;color: var(--primary);">Select Ingredients</h3>
-                <div class="ingredients-table" style="margin-bottom:1rem;">
-                    <table>
-                        <thead>
-                            <tr style="border-bottom:1px solid #eee;">
-                                <th style="text-align:left;">Ingredient</th>
-                                <th style="text-align:center;">Qty (kg)</th>
-                                <th style="text-align:center;">Cost/kg</th>
-                                <th style="text-align:center;">Total</th>
-                                <th style="text-align:right;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="materialRows"></tbody>
-                    </table>
-                </div>
-                <button class="btn btn-add-ingredient" id="addRowBtn">
-                    <i class="fas fa-plus"></i> Add Ingredient
-                </button>
-                <div style="margin-top:1rem;display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-weight:600;">Total Ingredient Cost:</span>
-                    <span id="totalMaterialCost" style="font-weight:600;">₹0.00</span>
-                </div>
-            </div>
-
-            <div style="margin-bottom:2rem;">
-                <h3 style="font-size:1.2rem;font-weight:600;margin-bottom:1rem;color: var(--primary);">Bottle Information</h3>
-                <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:1rem;margin-bottom:1rem;">
-                    <div>
-                        <label for="numBottles" style="display:block;margin-bottom:0.5rem;">Number of Bottles</label>
-                        <input id="numBottles" type="number" min="1" placeholder="Enter quantity">
-                    </div>
-                    <div>
-                        <label for="costPerBottle" style="display:block;margin-bottom:0.5rem;">Cost per Bottle (₹)</label>
-                        <input id="costPerBottle" type="number" min="0" placeholder="Enter cost">
-                    </div>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-weight:600;">Total Bottle Cost:</span>
-                    <span id="totalBottleCost" style="font-weight:600;">₹0.00</span>
-                </div>
-            </div>
-
-            <div style="margin-bottom:1.5rem;">
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem;background:#f8f9fa;border-radius:8px;">
-                    <span style="font-weight:700;">Total Base Cost (Ingredients + Bottles):</span>
-                    <span id="totalCost" style="font-weight:700;">₹0.00</span>
-                </div>
-            </div>
-
-            <button class="btn btn-calculate" id="calcBtn">
-                <span id="buttonText">Calculate Product Price</span>
-                <span id="loadingIndicator" class="hidden">Calculating...</span>
-            </button>
-        </div>
-
-        <div class="card" id="pricingResults" style="display:none;">
-            <h3 style="font-size:1.2rem;font-weight:600;margin-bottom:1rem;color: var(--primary);">Pricing Calculations</h3>
-            <div class="results-grid">
-                <div class="result-box">
-                    <div style="color:var(--muted);margin-bottom:0.5rem;">Base Cost (₹)</div>
-                    <div style="font-size:1.25rem;font-weight:600;" id="resultBasePrice"></div>
-                    <div style="color:var(--muted);font-size:0.875rem;">Total Ingredient + bottle cost</div>
-                </div>
-                <div class="result-box">
-                    <div style="color:var(--muted);margin-bottom:0.5rem;">Margin 1 (113%)</div>
-                    <div style="font-size:1.25rem;font-weight:600;" id="resultMargin1"></div>
-                    <div style="color:var(--muted);font-size:0.875rem;">C × 113%</div>
-                </div>
-                <div class="result-box">
-                    <div style="color:var(--muted);margin-bottom:0.5rem;">Margin 2 (12%)</div>
-                    <div style="font-size:1.25rem;font-weight:600;" id="resultMargin2"></div>
-                    <div style="color:var(--muted);font-size:0.875rem;">(C + M1) × 12%</div>
-                </div>
-            </div>
-
-            <div class="result-box total" style="margin-top:1.5rem;">
-                <div style="margin-bottom:0.5rem;">Total Selling Price</div>
-                <div style="font-size:1.5rem;font-weight:700;" id="resultTotalPrice"></div>
-                <div style="font-size:0.875rem;margin-top:0.5rem;">
-                    Gross Selling Price per Bottle: <span id="resultPricePerBottle"></span>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Drawer toggle script -->
-    <script>
-        // Drawer toggle logic (reused from index.html)
-        document.addEventListener('DOMContentLoaded', () => {
-            const btn = document.getElementById('hamburgerBtn');
-            const drawer = document.getElementById('drawerNav');
-            const backdrop = document.getElementById('backdrop');
-            const links = document.querySelectorAll('.drawer-link');
-
-            function openDrawer() {
-                drawer.classList.add('open');
-                backdrop.classList.add('open');
-                drawer.setAttribute('aria-hidden', 'false');
-                btn.setAttribute('aria-expanded', 'true');
-                document.body.style.overflow = 'hidden';
-            }
-
-            function closeDrawer() {
-                drawer.classList.remove('open');
-                backdrop.classList.remove('open');
-                drawer.setAttribute('aria-hidden', 'true');
-                btn.setAttribute('aria-expanded', 'false');
-                document.body.style.overflow = '';
-            }
-
-            btn.addEventListener('click', () => {
-                drawer.classList.contains('open') ? closeDrawer() : openDrawer();
-            });
-
-            backdrop.addEventListener('click', closeDrawer);
-
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
-            });
-
-            links.forEach(link => {
-                link.addEventListener('click', closeDrawer);
-            });
-        });
-    </script>
+  <!-- Main Content -->
+  <main class="main">
+    <h2 class="main-heading">Product Price Calculator</h2>
     
-    <!-- Page Logic -->
-    <script type="module">
-        import { db, userId, appId, initializeFirebase, collection, getDocs, onAuthStateChanged, query, where } from "./firebase-config.js";
+    <h2 class="main-section-title">Select Ingredients</h2>
+    <section class="card">
+      <div class="ingredients-table" style="margin-bottom:1.2rem;">
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left;">Ingredient</th>
+              <th>Quantity</th>
+              <th>Unit</th>
+              <th>Cost per unit</th>
+              <th style="text-align:right;">Total Cost</th>
+              <th style="text-align:right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="materialRows">
+            <!-- Dynamic rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+      <!-- Updated button styles for a solid green button that fits its content -->
+      <button class="btn" id="addRowBtn">+ Add Ingredient</button>
+      <div style="margin-top:1.2rem;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:600;">Total Ingredient Cost:</span>
+        <span id="totalMaterialCost" style="font-weight:600;">₹0.00</span>
+      </div>
+    </section>
 
-        const materialRowsTableBody = document.getElementById('materialRows');
-        const addRowBtn = document.getElementById('addRowBtn');
-        const calcBtn = document.getElementById('calcBtn');
-        const pricingResults = document.getElementById('pricingResults');
-        let materials = []; // Stores all materials fetched from Firestore.
+    <h2 class="main-section-title">Bottle Information</h2>
+    <section class="card">
+      <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:1.2rem;margin-bottom:1.2rem;">
+        <div>
+          <label for="numBottles">Number of Bottles</label>
+          <input id="numBottles" type="number" min="1" placeholder="Enter quantity" value="1">
+        </div>
+        <div>
+          <label for="costPerBottle">Cost per Bottle (₹)</label>
+          <input id="costPerBottle" type="number" min="0" placeholder="Enter cost" value="0">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:600;">Total Bottle Cost:</span>
+        <span id="totalBottleCost" style="font-weight:600;">₹0.00</span>
+      </div>
+    </section>
 
-        /**
-         * Fetches all unique materials from Firestore and updates dropdowns.
-         */
-        async function fetchMaterials() {
-            console.log('fetchMaterials: Attempting to fetch materials...');
-            try {
-                if (!db || !userId) {
-                     console.warn("Database not ready, cannot fetch materials.");
-                     return;
-                }
-                const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
-                const snapshot = await getDocs(collection(db, collectionPath));
-                
-                materials = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.9rem 1rem;background:#f8f8f8;border-radius:10px;margin-bottom:1.2rem;">
+        <span style="font-weight:700;">Total Base Cost (Ingredients + Bottles):</span>
+        <span id="totalCost" style="font-weight:700;">₹0.00</span>
+      </div>
+      <button class="btn btn-primary" id="calcBtn" style="width:100%;font-size:1.1rem;">Calculate Product Price</button>
+    </section>
 
-                // Get a list of unique material names for the dropdown.
-                const uniqueMaterialNames = [...new Set(materials.map(m => m.material))];
-                
-                // Update all existing dropdowns.
-                document.querySelectorAll('.material-select').forEach(select => {
-                    const selectedValue = select.value;
-                    select.innerHTML = '<option value="">Select Material</option>';
-                    uniqueMaterialNames.forEach(materialName => {
-                        const option = document.createElement('option');
-                        option.value = materialName;
-                        option.textContent = materialName;
-                        select.appendChild(option);
-                    });
-                    select.value = selectedValue; // Restore the previously selected value.
-                });
+    <h2 class="main-section-title">Pricing Calculations</h2>
+    <section class="card" id="pricingResults" style="display:none;">
+      <div class="results-grid">
+        <div style="padding:1.2rem;background:#f0f0f0;text-align:center;">
+          <div style="color:#666;margin-bottom:0.5rem;">Base Cost (₹)</div>
+          <div style="font-size:1.25rem;font-weight:700;" id="resultBasePrice"></div>
+          <div style="color:#666;font-size:0.875rem;">Total Ingredient + bottle cost</div>
+        </div>
+        <div style="padding:1.2rem;background:#f0f0f0;text-align:center;">
+          <div style="color:#666;margin-bottom:0.5rem;">Margin 1 (13%)</div>
+          <div style="font-size:1.25rem;font-weight:700;" id="resultMargin1"></div>
+          <div style="color:#666;font-size:0.875rem;">Base Cost × 13%</div>
+        </div>
+        <div style="padding:1.2rem;background:#f0f0f0;text-align:center;">
+          <div style="color:#666;margin-bottom:0.5rem;">Margin 2 (12%)</div>
+          <div style="font-size:1.25rem;font-weight:700;" id="resultMargin2"></div>
+          <div style="color:#666;font-size:0.875rem;">(Base Cost + Margin 1) × 12%</div>
+        </div>
+      </div>
+      <div style="margin-top:1.5rem;text-align:center;padding:1.2rem;background:#234123;color:white;border-radius:12px;">
+        <div style="margin-bottom:0.5rem;">Total Selling Price</div>
+        <div style="font-size:1.5rem;font-weight:700;" id="resultTotalPrice"></div>
+        <div style="font-size:0.95rem;margin-top:0.5rem;">
+          Gross Selling Price per Bottle: <span id="resultPricePerBottle"></span>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="product-price.js"></script>
+  <!-- Drawer toggle script -->
+  <script>
+    (function () {
+      const btn = document.getElementById('hamburgerBtn');
+      const drawer = document.getElementById('drawerNav');
+      const backdrop = document.getElementById('backdrop');
 
-            } catch (err) {
-                console.error("Error fetching materials:", err);
-            }
+      if (btn && drawer && backdrop) {
+        function openDrawer() {
+          drawer.classList.add('open');
+          backdrop.classList.add('open');
+          drawer.setAttribute('aria-hidden', 'false');
+          btn.setAttribute('aria-expanded', 'true');
+          const firstLink = drawer.querySelector('a');
+          if (firstLink) firstLink.focus({ preventScroll: true });
+          document.body.style.overflow = 'hidden';
         }
-        
-        /**
-         * Calculates total costs.
-         */
-        function calculateTotals() {
-            let totalMaterialCost = 0;
-            const materialRows = document.querySelectorAll('#materialRows tr');
-            materialRows.forEach(row => {
-                const quantity = parseFloat(row.querySelector('.ingredient-qty').value) || 0;
-                const costPerKg = parseFloat(row.querySelector('.ingredient-cost-per-kg').value) || 0;
-                const totalCost = quantity * costPerKg;
-                row.querySelector('.ingredient-total-cost').textContent = `₹${totalCost.toFixed(2)}`;
-                totalMaterialCost += totalCost;
-            });
-            document.getElementById('totalMaterialCost').textContent = `₹${totalMaterialCost.toFixed(2)}`;
-            
-            const numBottles = parseFloat(document.getElementById('numBottles').value) || 0;
-            const costPerBottle = parseFloat(document.getElementById('costPerBottle').value) || 0;
-            const totalBottleCost = numBottles * costPerBottle;
-            document.getElementById('totalBottleCost').textContent = `₹${totalBottleCost.toFixed(2)}`;
-            
-            const totalCost = totalMaterialCost + totalBottleCost;
-            document.getElementById('totalCost').textContent = `₹${totalCost.toFixed(2)}`;
+        function closeDrawer() {
+          drawer.classList.remove('open');
+          backdrop.classList.remove('open');
+          drawer.setAttribute('aria-hidden', 'true');
+          btn.setAttribute('aria-expanded', 'false');
+          btn.focus({ preventScroll: true });
+          document.body.style.overflow = '';
         }
-        
-        /**
-         * Adds a new ingredient row to the table.
-         */
-        function addIngredientRow() {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>
-                    <select class="material-select" required></select>
-                </td>
-                <td><input type="number" min="0" step="0.01" class="ingredient-qty" value="0"></td>
-                <td><input type="number" min="0" step="0.01" class="ingredient-cost-per-kg" value="0" readonly></td>
-                <td><span class="ingredient-total-cost">₹0.00</span></td>
-                <td style="text-align:right;">
-                    <button type="button" class="btn-remove-item" aria-label="Remove ingredient">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </td>
-            `;
-            materialRowsTableBody.appendChild(row);
-            fetchMaterials(); // Fetch materials to populate the new dropdown.
-
-            row.querySelectorAll('input.ingredient-qty').forEach(input => {
-                input.addEventListener('input', calculateTotals);
-            });
-            row.querySelectorAll('input.ingredient-cost-per-kg').forEach(input => {
-                input.addEventListener('input', calculateTotals);
-            });
-            row.querySelector('.material-select').addEventListener('change', (e) => {
-                getMaterialCost(e.target);
-            });
-            row.querySelector('.btn-remove-item').addEventListener('click', () => {
-                row.remove();
-                calculateTotals();
-            });
-        }
-        
-        /**
-         * Fetches the average cost per kg for a selected material.
-         * @param {HTMLSelectElement} selectElement The select element that was changed.
-         */
-        async function getMaterialCost(selectElement) {
-            const materialName = selectElement.value;
-            const row = selectElement.closest('tr');
-            const costInput = row.querySelector('.ingredient-cost-per-kg');
-            
-            if (materialName && db) {
-                const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
-                const q = query(collection(db, collectionPath), where("material", "==", materialName));
-                const querySnapshot = await getDocs(q);
-                
-                let totalCost = 0;
-                let totalQuantityInKg = 0;
-                
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    const quantityInKg = data.quantityUnit === 'gram' ? data.quantity / 1000 : data.quantity;
-                    const priceWithTaxes = (data.price || 0) + (data.gst || 0) + (data.hamali || 0);
-                    totalCost += priceWithTaxes;
-                    totalQuantityInKg += quantityInKg;
-                });
-                
-                const avgCost = totalQuantityInKg > 0 ? totalCost / totalQuantityInKg : 0;
-                costInput.value = avgCost.toFixed(2);
-            } else {
-                costInput.value = '0.00';
-            }
-            calculateTotals();
-        }
-
-        // Add event listeners for total cost calculations
-        document.getElementById('numBottles').addEventListener('input', calculateTotals);
-        document.getElementById('costPerBottle').addEventListener('input', calculateTotals);
-        
-        // Add a new ingredient row when the button is clicked
-        addRowBtn.addEventListener('click', addIngredientRow);
-        
-        // Calculate the final price when the button is clicked
-        calcBtn.addEventListener('click', () => {
-            const totalBaseCost = parseFloat(document.getElementById('totalCost').textContent.replace('₹', '')) || 0;
-            const numBottles = parseFloat(document.getElementById('numBottles').value) || 0;
-            
-            if (numBottles <= 0) {
-                pricingResults.innerHTML = `
-                    <div class="p-4 bg-red-100 text-red-800 rounded-lg text-center">
-                        Please enter a valid number of bottles (greater than 0).
-                    </div>
-                `;
-                pricingResults.style.display = 'block';
-                return;
-            }
-
-            const margin1 = totalBaseCost * 1.13;
-            const margin2 = (totalBaseCost + margin1) * 0.12;
-            const totalPrice = totalBaseCost + margin1 + margin2;
-            const pricePerBottle = totalPrice / numBottles;
-
-            document.getElementById('resultBasePrice').textContent = totalBaseCost.toFixed(2);
-            document.getElementById('resultMargin1').textContent = margin1.toFixed(2);
-            document.getElementById('resultMargin2').textContent = margin2.toFixed(2);
-            document.getElementById('resultTotalPrice').textContent = `₹${totalPrice.toFixed(2)}`;
-            document.getElementById('resultPricePerBottle').textContent = `₹${pricePerBottle.toFixed(2)}`;
-
-            pricingResults.style.display = 'block';
+        btn.addEventListener('click', () => {
+          drawer.classList.contains('open') ? closeDrawer() : openDrawer();
         });
-
-        // Initialize Firebase and listen for auth state changes.
-        // पेज लोड होने पर Firebase को इनिशियलाइज़ करें और auth state changes को सुनें।
-        initializeFirebase();
-        onAuthStateChanged(auth, user => {
-            if (user) {
-                console.log('User signed in, fetching materials...');
-                fetchMaterials();
-            } else {
-                console.log('User not signed in, waiting for authentication.');
-                const loadingMessage = `<div class="card"><p class="text-center text-gray-500">Please log in to use the calculator.</p></div>`;
-                document.querySelector('.main').innerHTML = loadingMessage;
-            }
+        backdrop.addEventListener('click', closeDrawer);
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
         });
-    </script>
+        drawer.addEventListener('click', (e) => {
+          if (e.target.closest('a[href]')) closeDrawer();
+        });
+      } else {
+        console.error('Drawer elements not found. Check your HTML IDs.');
+      }
+    })();
+  </script>
 </body>
-
 </html>
