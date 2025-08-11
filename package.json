@@ -1,0 +1,16 @@
+{
+  "name": "product-price-calculator",
+  "version": "1.0.0",
+  "description": "Material management and product price calculation app",
+  "scripts": {
+    "build": "node deploy.js",
+    "preview": "npx serve build"
+  },
+  "dependencies": {
+    "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
+    "firebase": "^10.12.2"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

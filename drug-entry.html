@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Ayurvedic Drug Entry Form">
+    <title>Add Drug - Product App</title>
+
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        :root {
+            --bg: #ffffff;
+            --surface: #ffffff;
+            --primary: #234123;
+            --primary-600: #1d361d;
+            --accent: #7cc58f;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+            --radius: 14px;
+        }
+
+        /* Base */
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        img {
+            display: block;
+            max-width: 100%;
+        }
+
+        /* Top bar (reused from index.html) */
+        .topbar {
+            position: fixed;
+            inset: 0 0 auto 0;
+            height: 64px;
+            background: #ffffff;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 0 14px;
+            z-index: 200;
+        }
+
+        .hamburger-btn {
+            width: 42px;
+            height: 42px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .hamburger {
+            width: 24px;
+            height: 2px;
+            background: var(--primary);
+            position: relative;
+            display: block;
+        }
+
+        .hamburger::before,
+        .hamburger::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            width: 24px;
+            height: 2px;
+            background: var(--primary);
+            transition: transform 0.2s ease, top 0.2s ease, opacity 0.2s ease;
+        }
+
+        .hamburger::before {
+            top: -7px;
+        }
+
+        .hamburger::after {
+            top: 7px;
+        }
+
+        .left-logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .left-logo-wrap img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border);
+        }
+
+        .topbar-logo {
+            height: 84px;
+            width: auto;
+        }
+
+        /* Drawer */
+        .drawer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 260px;
+            background: #ffffff;
+            border-right: 1px solid #e0e0e0;
+            transform: translateX(-100%);
+            transition: transform .25s ease;
+            z-index: 300;
+            padding: 78px 0 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .drawer.open {
+            transform: translateX(0);
+        }
+
+        .drawer-logo {
+            text-align: center;
+            padding: 0 16px 12px 16px;
+        }
+
+        .drawer-logo img {
+            max-height: 80px;
+            height: auto;
+            margin: 0 auto 8px;
+        }
+
+        .drawer-link {
+            padding: 12px 18px;
+            font-size: 1rem;
+            color: var(--primary);
+            font-weight: 600;
+            border-left: 4px solid transparent;
+        }
+
+        .drawer-link:hover {
+            background: #f0f0f0;
+        }
+
+        .drawer-link.active {
+            background: #f0f0f0;
+            border-left-color: var(--primary);
+        }
+
+        .backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.28);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .2s ease, visibility .2s ease;
+            z-index: 250;
+        }
+
+        .backdrop.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Main layout and form container */
+        .main {
+            padding: 84px 24px 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .form-card {
+            width: 100%;
+            max-width: 850px;
+            margin: 0 auto;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 2rem;
+        }
+
+        /* Form elements */
+        .section-title {
+            display: block;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 1.1em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #fafafa;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(35, 65, 35, 0.2);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.85rem;
+            font-size: 1.05rem;
+            border-radius: 8px;
+            border: 1px solid var(--primary);
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 12px rgba(35, 65, 35, 0.2);
+        }
+
+        .btn:hover {
+            background: var(--primary-600);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(35, 65, 35, 0.25);
+        }
+        
+        .add-remove-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            align-items: center;
+        }
+
+        .add-btn, .remove-btn {
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid;
+            background: transparent;
+        }
+
+        .add-btn {
+            color: var(--primary);
+            border-color: var(--accent);
+            background-color: #e6f7e7;
+        }
+
+        .add-btn:hover {
+            background-color: #d1e8d2;
+        }
+
+        .remove-btn {
+            color: #ef4444;
+            border-color: #fee2e2;
+            background-color: #fef2f2;
+        }
+
+        .remove-btn:hover {
+            background-color: #fee2e2;
+        }
+
+        .dynamic-field-group {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #fefefe;
+            position: relative;
+        }
+
+        .dynamic-field-group .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            margin-left: 0;
+            background: none;
+            border: none;
+            padding: 5px;
+            font-size: 12px;
+            color: #ef4444;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .dynamic-field-group .remove-btn:hover {
+            background-color: #f8f8f8;
+        }
+
+        .multi-input-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        
+        .multi-input-row input {
+            flex: 1;
+            margin-top: 0;
+        }
+
+        .chip {
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid #c5e1a5;
+            background-color: #e8f5e9;
+            color: #388e3c;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .chip.selected {
+            background-color: #c8e6c9;
+            border-color: #8bc34a;
+            color: #2e7d32;
+        }
+
+        .chip:hover {
+            background-color: #d0e0d1;
+        }
+
+        .chip .icon {
+            font-size: 16px;
+        }
+        
+        /* Heading styling */
+        .main-heading {
+            font-size: clamp(2rem, 3vw, 2.5rem);
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5rem;
+        }
+
+        /* Message styling */
+        #statusMessage {
+            width: 100%;
+            max-width: 850px;
+            margin: 1.5rem auto 0;
+            box-sizing: border-box;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .message-success {
+            color: #286d42;
+            background: #e6f7e7;
+            border-left: 4px solid #286d42;
+        }
+
+        .message-error {
+            color: #872a2a;
+            background: #f9e6e7;
+            border-left: 4px solid #872a2a;
+        }
+
+        .message-info {
+            color: #1e40af;
+            background: #eff6ff;
+            border-left: 4px solid #1e40af;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Responsive overrides */
+        @media (max-width: 640px) {
+            .topbar-logo {
+                height: 40px;
+            }
+
+            .main {
+                padding: 84px 14px 24px;
+            }
+
+            .drawer {
+                width: 80vw;
+            }
+
+            .main-heading {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top bar with hamburger + brand -->
+    <header class="topbar" role="banner">
+        <div class="left-logo-wrap">
+            <img src="assets/owner.jpg" onerror="this.onerror=null; this.src='https://placehold.co/40x40/e5e7eb/6b7280?text=O'" alt="User Logo">
+            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open navigation" aria-controls="drawerNav" aria-expanded="false">
+                <span class="hamburger" aria-hidden="true"></span>
+            </button>
+        </div>
+        <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/84x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo" class="topbar-logo">
+    </header>
+
+    <!-- Drawer navigation -->
+    <nav class="drawer" id="drawerNav" aria-hidden="true">
+        <div class="drawer-logo">
+            <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/80x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo">
+        </div>
+        <a href="index.html" class="drawer-link">Home</a>
+        <a href="add-material.html" class="drawer-link">Add Material</a>
+        <a href="product-price.html" class="drawer-link">Product Price</a>
+        <a href="drug-entry.html" class="drawer-link active">Add Drug</a>
+        <a href="all-materials.html" class="drawer-link">All Purchases</a>
+    </nav>
+
+    <!-- Backdrop -->
+    <div class="backdrop" id="backdrop"></div>
+
+    <main class="main">
+        <h2 class="main-heading">Add Drug</h2>
+
+        <div id="statusMessage" class="hidden"></div>
+        <form id="drugForm" class="form-card">
+            <label class="section-title" for="drugName">Drug Name</label>
+            <input type="text" id="drugName" required placeholder="Enter the drug name">
+
+            <label class="section-title" for="drugDetails">Drug Details</label>
+            <textarea id="drugDetails" rows="5" placeholder="Give basic details about the drug"></textarea>
+
+            <label class="section-title">Categories</label>
+            <div id="categoriesContainer" class="flex flex-wrap gap-2">
+                <!-- Categories will load dynamically here -->
+            </div>
+            <div class="text-right mt-2">
+                <button type="button" class="add-btn" id="toggleCategoriesBtn">
+                    <span id="toggleCategoriesText">Show More</span>
+                </button>
+            </div>
+
+            <div id="customCategoriesSection" class="mt-4 hidden">
+                <label class="section-title">Custom Categories</label>
+                <div id="customCategoryFields">
+                    <!-- Custom category input fields will go here -->
+                </div>
+                <div class="add-remove-container">
+                    <button type="button" class="add-btn" id="addCustomCategoryBtn">
+                        <i class="fas fa-plus"></i> Add Custom Category
+                    </button>
+                    <button type="button" class="remove-btn hidden" id="removeCustomCategoryBtn">
+                        <i class="fas fa-trash-alt"></i> Remove Last
+                    </button>
+                </div>
+            </div>
+
+            <label class="section-title">Cures (Diseases)</label>
+            <div id="diseasesContainer">
+                <!-- Dynamic disease fields will be added here -->
+            </div>
+            <div class="add-remove-container">
+                <button type="button" class="add-btn" id="addDiseaseBtn">
+                    <i class="fas fa-plus"></i> Add Disease
+                </button>
+                <button type="button" class="remove-btn hidden" id="removeDiseaseBtn">
+                    <i class="fas fa-trash-alt"></i> Remove Last
+                </button>
+            </div>
+
+            <label class="section-title">Ingredients</label>
+            <div id="ingredientsContainer">
+                <!-- Dynamic ingredient fields will be added here -->
+            </div>
+            <div class="add-remove-container">
+                <button type="button" class="add-btn" id="addIngredientBtn">
+                    <i class="fas fa-plus"></i> Add Ingredient
+                </button>
+                <button type="button" class="remove-btn hidden" id="removeIngredientBtn">
+                    <i class="fas fa-trash-alt"></i> Remove Last
+                </button>
+            </div>
+
+            <label class="section-title" for="preparation">Preparation</label>
+            <textarea id="preparation" rows="5" placeholder="Describe the method of preparation"></textarea>
+
+            <label class="section-title" for="anupana">Anupana</label>
+            <textarea id="anupana" rows="5" placeholder="Describe Anupana here"></textarea>
+
+            <label class="section-title" for="balances">Balances</label>
+            <textarea id="balances" rows="5" placeholder="Describe balances here"></textarea>
+
+            <label class="section-title" for="uses">Uses</label>
+            <textarea id="uses" rows="5" placeholder="Describe uses here"></textarea>
+
+            <label class="section-title" for="sideEffects">Side Effects (if any)</label>
+            <textarea id="sideEffects" rows="5" placeholder="Enter side effects here"></textarea>
+            
+            <label class="section-title">Custom Fields</label>
+            <div id="anotherFieldsContainer">
+                <!-- Dynamic custom fields will be added here -->
+            </div>
+            <div class="add-remove-container">
+                <button type="button" class="add-btn" id="addAnotherFieldBtn">
+                    <i class="fas fa-plus"></i> Add Custom Field
+                </button>
+                <button type="button" class="remove-btn hidden" id="removeAnotherFieldBtn">
+                    <i class="fas fa-trash-alt"></i> Remove Last
+                </button>
+            </div>
+
+            <button type="submit" class="btn mt-8">
+                <span id="buttonText">Add Drug</span>
+                <span id="loadingIndicator" class="hidden">Adding...</span>
+            </button>
+        </form>
+    </main>
+
+    <!-- Firebase and Form Logic -->
+    <script type="module">
+        import { db, userId, appId, initializeFirebase, collection, addDoc, getDocs, onAuthStateChanged, Timestamp } from "./firebase-config.js";
+
+        // Pre-defined categories
+        let _allCategories = [
+            'Arishta', 'Asava', 'Arka', 'Awaleha', 'Bhasma', 'Capsule',
+            'Churna', 'Dhupa', 'Dravaka', 'Ghrita', 'Guggulu', 'Lepa',
+            'Kashaya', 'Rasayana', 'Lauha',
+        ];
+        let _selectedCategories = [];
+        let _showAllCategories = false;
+        const categoriesToDisplayLimit = 4;
+
+        // Dynamic field storage
+        let diseaseFields = [];
+        let ingredientFields = [];
+        let anotherFields = [];
+        let customCategoryFields = [];
+
+        // --- Utility Functions ---
+        function showMessage(message, type = "info") {
+            const msgDiv = document.getElementById('statusMessage');
+            msgDiv.textContent = message;
+            msgDiv.className = `p-4 text-sm font-medium ${type === 'success' ? 'message-success' : type === 'error' ? 'message-error' : 'message-info'}`;
+            msgDiv.classList.remove('hidden');
+        }
+
+        function hideMessage() {
+            const msgDiv = document.getElementById('statusMessage');
+            msgDiv.classList.add('hidden');
+        }
+
+        // --- Category Management ---
+        async function fetchAndSetCategories() {
+            if (!db || !userId) {
+                console.warn("Firestore instance or user ID not available, cannot fetch categories.");
+                return;
+            }
+            try {
+                const fetchedCategoriesSet = new Set(_allCategories);
+                const collectionPath = `/artifacts/${appId}/users/${userId}/drugs`;
+                const querySnapshot = await getDocs(collection(db, collectionPath));
+                
+                querySnapshot.forEach(doc => {
+                    const drugData = doc.data();
+                    const categories = drugData['categories'];
+                    if (categories && Array.isArray(categories)) {
+                        categories.forEach(cat => {
+                            if (typeof cat === 'string') {
+                                fetchedCategoriesSet.add(cat);
+                            }
+                        });
+                    }
+                });
+
+                _allCategories = Array.from(fetchedCategoriesSet).sort();
+                renderCategories();
+            } catch (e) {
+                console.error('Error fetching categories from Firestore:', e);
+                showMessage('Failed to load categories.', 'error');
+            }
+        }
+
+        function renderCategories() {
+            const container = document.getElementById("categoriesContainer");
+            container.innerHTML = '';
+
+            const categoriesToRender = _showAllCategories
+                ? _allCategories
+                : _allCategories.slice(0, categoriesToDisplayLimit);
+
+            categoriesToRender.forEach(category => {
+                const isSelected = _selectedCategories.includes(category);
+                const chip = document.createElement("button");
+                chip.type = "button";
+                chip.className = `chip ${isSelected ? 'selected' : ''}`;
+                chip.innerHTML = `<i class="fas ${isSelected ? 'fa-check' : 'fa-plus'} icon"></i> ${category}`;
+                chip.onclick = () => toggleCategory(category);
+                container.appendChild(chip);
+            });
+
+            const toggleBtn = document.getElementById("toggleCategoriesBtn");
+            if (toggleBtn) {
+                document.getElementById("toggleCategoriesText").innerText = _showAllCategories ? 'Show Less' : 'Show More';
+            }
+
+            const customCategoriesSection = document.getElementById("customCategoriesSection");
+            if (_showAllCategories) {
+                customCategoriesSection.classList.remove('hidden');
+                renderCustomCategoryFields();
+            } else {
+                customCategoriesSection.classList.add('hidden');
+                _selectedCategories = _selectedCategories.filter(cat => _allCategories.includes(cat));
+                customCategoryFields = customCategoryFields.filter(field => _allCategories.includes(field.input.value.trim()));
+                renderCustomCategoryFields();
+            }
+        }
+
+        function toggleCategory(category) {
+            const index = _selectedCategories.indexOf(category);
+            if (index > -1) {
+                _selectedCategories.splice(index, 1);
+            } else {
+                _selectedCategories.push(category);
+            }
+            renderCategories();
+        }
+
+        function toggleShowAllCategories() {
+            _showAllCategories = !_showAllCategories;
+            renderCategories();
+        }
+
+        // --- Dynamic Fields Management (Diseases, Ingredients, Other Fields) ---
+        function createFieldGroup(type) {
+            const container = document.getElementById(type + 'sContainer');
+            const groupDiv = document.createElement("div");
+            groupDiv.className = "dynamic-field-group";
+            container.appendChild(groupDiv);
+            
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "remove-btn";
+            removeBtn.innerHTML = `<i class="fas fa-trash-alt"></i>`;
+            removeBtn.onclick = () => removeDynamicField(type, groupDiv);
+            groupDiv.appendChild(removeBtn);
+
+            return { container, groupDiv };
+        }
+
+        function removeDynamicField(type, elementToRemove) {
+            elementToRemove.remove();
+            let fieldArray;
+            let removeButtonId;
+
+            if (type === "disease") {
+                diseaseFields = diseaseFields.filter(f => f.div !== elementToRemove);
+                fieldArray = diseaseFields;
+                removeButtonId = "removeDiseaseBtn";
+            } else if (type === "ingredient") {
+                ingredientFields = ingredientFields.filter(f => f.div !== elementToRemove);
+                fieldArray = ingredientFields;
+                removeButtonId = "removeIngredientBtn";
+            } else if (type === "anotherField") {
+                anotherFields = anotherFields.filter(f => f.div !== elementToRemove);
+                fieldArray = anotherFields;
+                removeButtonId = "removeAnotherFieldBtn";
+            } else if (type === "customCategory") {
+                const categoryText = elementToRemove.querySelector('input').value.trim();
+                _selectedCategories = _selectedCategories.filter(cat => cat !== categoryText);
+                customCategoryFields = customCategoryFields.filter(f => f.div !== elementToRemove);
+                fieldArray = customCategoryFields;
+                removeButtonId = "removeCustomCategoryBtn";
+                renderCategories();
+            }
+            updateRemoveButtonVisibility(removeButtonId, fieldArray);
+        }
+
+        function updateRemoveButtonVisibility(buttonId, array) {
+            const btn = document.getElementById(buttonId);
+            if (btn) {
+                btn.classList.toggle('hidden', array.length === 0);
+            }
+        }
+
+        // Disease Field
+        function addDiseaseField() {
+            const { groupDiv } = createFieldGroup("disease");
+
+            const nameInput = document.createElement("input");
+            nameInput.type = "text";
+            nameInput.placeholder = "Disease Name";
+            nameInput.className = "diseaseName mb-2";
+
+            const descTextarea = document.createElement("textarea");
+            descTextarea.rows = 3;
+            descTextarea.placeholder = "Description";
+            descTextarea.className = "diseaseDescription";
+
+            groupDiv.appendChild(nameInput);
+            groupDiv.appendChild(descTextarea);
+
+            diseaseFields.push({ nameInput, descTextarea, div: groupDiv });
+            updateRemoveButtonVisibility("removeDiseaseBtn", diseaseFields);
+        }
+
+        // Ingredient Field
+        function addIngredientField() {
+            const { groupDiv } = createFieldGroup("ingredient");
+
+            const row = document.createElement("div");
+            row.className = "multi-input-row";
+
+            const nameInput = document.createElement("input");
+            nameInput.type = "text";
+            nameInput.placeholder = "Ingredient Name";
+            nameInput.className = "ingredientName";
+            nameInput.required = true;
+
+            const qtyInput = document.createElement("input");
+            qtyInput.type = "text";
+            qtyInput.placeholder = "Quantity (mg)";
+            qtyInput.className = "ingredientQty";
+            qtyInput.required = true;
+
+            row.appendChild(nameInput);
+            row.appendChild(qtyInput);
+            groupDiv.appendChild(row);
+
+            ingredientFields.push({ nameInput, qtyInput, div: groupDiv });
+            updateRemoveButtonVisibility("removeIngredientBtn", ingredientFields);
+        }
+
+        // Other Fields (Custom Key-Value Pairs)
+        function addAnotherField() {
+            const { groupDiv } = createFieldGroup("anotherField");
+
+            const nameInput = document.createElement("input");
+            nameInput.type = "text";
+            nameInput.placeholder = "Field Name";
+            nameInput.className = "anotherFieldName mb-2";
+
+            const valueInput = document.createElement("textarea");
+            valueInput.rows = 3;
+            valueInput.placeholder = "Field Value";
+            valueInput.className = "anotherFieldValue";
+
+            groupDiv.appendChild(nameInput);
+            groupDiv.appendChild(valueInput);
+
+            anotherFields.push({ nameInput, valueInput, div: groupDiv });
+            updateRemoveButtonVisibility("removeAnotherFieldBtn", anotherFields);
+        }
+
+        function addCustomCategoryField() {
+            const container = document.getElementById("customCategoryFields");
+            const groupDiv = document.createElement("div");
+            groupDiv.className = "dynamic-field-group";
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.placeholder = "Enter custom category name...";
+            input.className = "customCategoryName";
+            input.required = true;
+            input.oninput = () => {
+                const categoryText = input.value.trim();
+                _selectedCategories = _selectedCategories.filter(cat => cat !== categoryText);
+                if (categoryText) {
+                    _selectedCategories.push(categoryText);
+                }
+                renderCategories();
+            };
+
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "remove-btn";
+            removeBtn.innerHTML = `<i class="fas fa-trash-alt"></i>`;
+            removeBtn.onclick = () => removeDynamicField("customCategory", groupDiv);
+
+            groupDiv.appendChild(input);
+            groupDiv.appendChild(removeBtn);
+            container.appendChild(groupDiv);
+
+            customCategoryFields.push({ input: input, div: groupDiv });
+            updateRemoveButtonVisibility("removeCustomCategoryBtn", customCategoryFields);
+        }
+        
+        function renderCustomCategoryFields() {
+            const container = document.getElementById("customCategoryFields");
+            container.innerHTML = '';
+            customCategoryFields.forEach(field => container.appendChild(field.div));
+            updateRemoveButtonVisibility("removeCustomCategoryBtn", customCategoryFields);
+        }
+
+        // --- Form Submission ---
+        document.getElementById("drugForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            hideMessage();
+
+            const form = e.target;
+            const button = form.querySelector('.btn');
+            const buttonText = document.getElementById('buttonText');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            button.disabled = true;
+            if (buttonText) buttonText.classList.add('hidden');
+            if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+
+            try {
+                await initializeFirebase();
+                
+                if (!db || !userId) {
+                    throw new Error("User is not authenticated. Please log in and try again.");
+                }
+
+                const drugName = form.querySelector("#drugName").value.trim();
+                const drugDetails = form.querySelector("#drugDetails").value.trim();
+                const preparation = form.querySelector("#preparation").value.trim();
+                const anupana = form.querySelector("#anupana").value.trim();
+                const balances = form.querySelector("#balances").value.trim();
+                const uses = form.querySelector("#uses").value.trim();
+                const sideEffects = form.querySelector("#sideEffects").value.trim();
+                
+                const extraInformation = form.querySelector("#extraInformation")?.value?.trim() || '';
+
+                const diseases = diseaseFields.map(field => ({
+                    name: field.nameInput.value.trim(),
+                    description: field.descTextarea.value.trim()
+                })).filter(d => d.name || d.description);
+
+                const ingredients = ingredientFields.map(field => ({
+                    name: field.nameInput.value.trim(),
+                    mg: field.qtyInput.value.trim()
+                })).filter(i => i.name || i.mg);
+
+                const anotherFieldsData = anotherFields.map(field => ({
+                    fieldName: field.nameInput.value.trim(),
+                    fieldValue: field.valueInput.value.trim()
+                })).filter(f => f.fieldName || f.fieldValue);
+                
+                const finalCategories = [..._selectedCategories];
+                customCategoryFields.forEach(field => {
+                    const customCatText = field.input.value.trim();
+                    if (customCatText && !finalCategories.includes(customCatText)) {
+                        finalCategories.push(customCatText);
+                    }
+                });
+
+                const drugData = {
+                    drugName: drugName,
+                    drugDetails: drugDetails,
+                    categories: finalCategories,
+                    diseases: diseases,
+                    ingredients: ingredients,
+                    preparation: preparation,
+                    anupana: anupana,
+                    balances: balances,
+                    uses: uses,
+                    sideEffects: sideEffects,
+                    extraInformation: extraInformation,
+                    anotherFields: anotherFieldsData,
+                    timestamp: Timestamp.now()
+                };
+                
+                const collectionPath = `/artifacts/${appId}/users/${userId}/drugs`;
+                await addDoc(collection(db, collectionPath), drugData);
+
+                showMessage("Drug details successfully submitted!", "success");
+                form.reset();
+                _selectedCategories = [];
+                _showAllCategories = false;
+                
+                // Clear dynamic fields
+                document.getElementById("diseasesContainer").innerHTML = '';
+                diseaseFields = [];
+                updateRemoveButtonVisibility("removeDiseaseBtn", diseaseFields);
+                
+                document.getElementById("ingredientsContainer").innerHTML = '';
+                ingredientFields = [];
+                updateRemoveButtonVisibility("removeIngredientBtn", ingredientFields);
+                
+                document.getElementById("anotherFieldsContainer").innerHTML = '';
+                anotherFields = [];
+                updateRemoveButtonVisibility("removeAnotherFieldBtn", anotherFields);
+
+                document.getElementById("customCategoryFields").innerHTML = '';
+                customCategoryFields = [];
+                updateRemoveButtonVisibility("removeCustomCategoryBtn", customCategoryFields);
+                
+                fetchAndSetCategories();
+
+            } catch (err) {
+                console.error("Error submitting drug:", err);
+                if (err.code === 'permission-denied') {
+                    showMessage('Permission denied. Please check your Firestore security rules.', 'error');
+                } else {
+                    showMessage(`Failed to submit drug: ${err.message}`, 'error');
+                }
+            } finally {
+                button.disabled = false;
+                if (buttonText) buttonText.classList.remove('hidden');
+                if (loadingIndicator) loadingIndicator.classList.add('hidden');
+            }
+        });
+
+        // --- Onload Initialization ---
+        window.onload = async () => {
+            try {
+                await initializeFirebase();
+                onAuthStateChanged(auth, user => {
+                    if (user) {
+                        fetchAndSetCategories();
+                    } else {
+                        window.location.href = 'login.html';
+                    }
+                });
+            } catch (err) {
+                console.error("Initialization failed:", err);
+                showMessage("Firebase initialization failed. Please check your connection.", "error");
+            }
+        };
+
+        // --- Event Listeners for Dynamic Buttons ---
+        document.getElementById("toggleCategoriesBtn").addEventListener("click", toggleShowAllCategories);
+        document.getElementById("addCustomCategoryBtn").addEventListener("click", addCustomCategoryField);
+        document.getElementById("addDiseaseBtn").addEventListener("click", addDiseaseField);
+        document.getElementById("addIngredientBtn").addEventListener("click", addIngredientField);
+        document.getElementById("addAnotherFieldBtn").addEventListener("click", addAnotherField);
+        document.getElementById("removeCustomCategoryBtn").addEventListener("click", () => removeDynamicField("customCategory", customCategoryFields[customCategoryFields.length - 1].div));
+        document.getElementById("removeDiseaseBtn").addEventListener("click", () => removeDynamicField("disease", diseaseFields[diseaseFields.length - 1].div));
+        document.getElementById("removeIngredientBtn").addEventListener("click", () => removeDynamicField("ingredient", ingredientFields[ingredientFields.length - 1].div));
+        document.getElementById("removeAnotherFieldBtn").addEventListener("click", () => removeDynamicField("anotherField", anotherFields[anotherFields.length - 1].div));
+        
+        // --- Drawer Toggle Logic (reused) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('hamburgerBtn');
+            const drawer = document.getElementById('drawerNav');
+            const backdrop = document.getElementById('backdrop');
+
+            if (btn && drawer && backdrop) {
+                function openDrawer() {
+                    drawer.classList.add('open');
+                    backdrop.classList.add('open');
+                    drawer.setAttribute('aria-hidden', 'false');
+                    btn.setAttribute('aria-expanded', 'true');
+                    const firstLink = drawer.querySelector('a');
+                    if (firstLink) firstLink.focus({ preventScroll: true });
+                    document.body.style.overflow = 'hidden';
+                }
+
+                function closeDrawer() {
+                    drawer.classList.remove('open');
+                    backdrop.classList.remove('open');
+                    drawer.setAttribute('aria-hidden', 'true');
+                    btn.setAttribute('aria-expanded', 'false');
+                    btn.focus({ preventScroll: true });
+                    document.body.style.overflow = '';
+                }
+
+                btn.addEventListener('click', () => {
+                    drawer.classList.contains('open') ? closeDrawer() : openDrawer();
+                });
+
+                backdrop.addEventListener('click', closeDrawer);
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+                });
+
+                drawer.addEventListener('click', (e) => {
+                    if (e.target.closest('a[href]')) closeDrawer();
+                });
+            } else {
+                console.error('Drawer elements not found. Check your HTML IDs.');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Login to Product App">
+    <title>Login - Product App</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --surface: #ffffff;
+            --primary: #234123;
+            --primary-600: #1d361d;
+            --accent: #7cc58f;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+            --radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            color: var(--text);
+            background-color: rgba(0,0,0,0.5); /* Dim effect for outside area */
+        }
+        
+        /* Pop-up background overlay */
+        .login-popup-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            z-index: 999;
+        }
+
+        /* Login card with image background */
+        .login-card {
+            width: 90%;
+            max-width: 400px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            background: url('assets/background.png') center center / cover no-repeat fixed;
+            border: 1px solid var(--border);
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            transform: scale(0.95);
+            opacity: 0;
+            animation: fadeInScale 0.3s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Overlay inside card for readability */
+        .login-card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: var(--radius);
+            z-index: -1;
+        }
+
+        @keyframes fadeInScale {
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .login-card {
+                max-width: 90%;
+            }
+        }
+        
+        .login-logo {
+            max-width: 120px;
+            height: auto;
+            margin: 0 auto 1rem;
+        }
+        
+        .login-card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0 0 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #fafafa;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(35, 65, 35, 0.2);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.85rem;
+            font-size: 1.05rem;
+            border-radius: 8px;
+            border: 1px solid var(--primary);
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 12px rgba(35, 65, 35, 0.2);
+        }
+
+        .btn:hover {
+            background: var(--primary-600);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(35, 65, 35, 0.25);
+        }
+
+        .message-error {
+            color: #872a2a;
+            background: #f9e6e7;
+            border-left: 4px solid #872a2a;
+            padding: 0.75em 1em;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-popup-container">
+        <div class="login-card">
+            <!-- यह logo है, इसमें कोई बदलाव नहीं किया गया है। -->
+            <img src="assets/vasavi-logo.png" alt="Vasavi Ayurveda Logo" class="login-logo">
+            
+            <!-- यहाँ 'Login to Ayushman Bhava' text की जगह image लगाई गई है। -->
+            <!-- कृपया 'src' attribute में अपनी image का URL डालें। -->
+            <img src="assets/image.png" alt="Ayushman Bhava" class="h-12 w-25 mx-auto mb-4">
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required placeholder="your.email@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="Enter your password">
+                </div>
+                <button class="btn" type="submit">
+                    <span id="buttonText">Login</span>
+                    <span id="loadingIndicator" class="hidden">Logging in...</span>
+                </button>
+            </form>
+            
+            <div id="loginMessage" class="hidden"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeFirebase, auth } from "./firebase-config.js";
+        import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        
+        async function handleAuthState() {
+            await initializeFirebase();
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    console.log("User already logged in, redirecting to home page.");
+                    window.location.href = 'index.html';
+                } else {
+                    console.log("No user found. Displaying login page.");
+                }
+            });
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginMessage = document.getElementById('loginMessage');
+            const button = document.querySelector('.btn');
+            const buttonText = document.getElementById('buttonText');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            loginMessage.classList.add('hidden');
+            button.disabled = true;
+            buttonText.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+
+            try {
+                await initializeFirebase();
+                await signInWithEmailAndPassword(auth, email, password);
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error("Login failed:", error);
+                loginMessage.textContent = "Login failed. Please check your email and password.";
+                loginMessage.classList.remove('hidden');
+            } finally {
+                button.disabled = false;
+                buttonText.classList.remove('hidden');
+                loadingIndicator.classList.add('hidden');
+            }
+        });
+
+        window.onload = handleAuthState;
+    </script>
+</body>
+</html>

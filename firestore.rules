@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/userRoles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /drugs/{drugId} {
+      allow read: if isAuthenticated(); // All authenticated users can read
+      allow create, update, delete: if isAdmin(); // Only admins can create, update, delete
+    }
+
+    match /userRoles/{userId} {
+      // Allow authenticated users to read their own role document
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+
+      // NEW RULE: Allow Admins to read ALL user role documents
+      allow read: if isAdmin();
+
+      // New users can create their own role document (setting their initial role to 'user')
+      allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'user';
+
+      // Allow a user to update their OWN role document, but only if they are not trying to change role to 'admin'.
+      allow update: if isAuthenticated() && request.auth.uid == userId && (
+          (request.resource.data.role == 'user' && resource.data.role == 'user') ||
+          (request.resource.data.role == 'admin' && resource.data.role == 'admin')
+      );
+
+      // Admins can update ANY user's role. This rule gives admins the necessary permissions
+      // for the UserManagementPage.
+      allow update: if isAdmin();
+    }
+
+    match /favoriteDrugs/{favoriteDrugId} {
+      allow read: if isAuthenticated();
+      allow create, delete: if isAuthenticated();
+    }
+  }
+}

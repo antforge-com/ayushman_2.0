@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "ayushmanweb-master-copy"
+location: "us-central1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "fdcdb"
+      cloudSql:
+        instanceId: "ayushmanweb-master-copy-fdc"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]
