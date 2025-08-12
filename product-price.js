@@ -1,6 +1,6 @@
 // product-price.js
 // Import necessary Firebase modules from the shared config file
-import { db, auth, appId, initializeFirebase, collection, getDocs } from "./firebase-config.js";
+import { db, auth, appId, initializeFirebase, collection, getDocs, addDoc, Timestamp } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // Access DOM elements
@@ -12,6 +12,10 @@ const numBottlesInput = document.getElementById('numBottles');
 const costPerBottleInput = document.getElementById('costPerBottle');
 const calcBtn = document.getElementById('calcBtn');
 const pricingResultsDiv = document.getElementById('pricingResults');
+const statusMessageDiv = document.getElementById('statusMessage');
+const buttonText = document.getElementById('buttonText');
+const loadingIndicator = document.getElementById('loadingIndicator');
+
 
 let materialRows = []; // Stores the current rows for material selection
 let materials = []; // Stores all materials fetched from Firestore
@@ -20,6 +24,21 @@ let materials = []; // Stores all materials fetched from Firestore
 const hamburgerBtn = document.getElementById('hamburgerBtn');
 const drawerNav = document.getElementById('drawerNav');
 const backdrop = document.getElementById('backdrop');
+
+
+/**
+ * User ko message dikhata hai.
+ * @param {string} message Dikhane wala message.
+ * @param {string} type Message ka prakar ('success', 'error', 'info').
+ */
+function showMessage(message, type) {
+    statusMessageDiv.textContent = message;
+    statusMessageDiv.className = `message-box message-${type}`;
+    statusMessageDiv.classList.remove('hidden');
+    setTimeout(() => {
+        statusMessageDiv.classList.add('hidden');
+    }, 5000);
+}
 
 
 /**
@@ -113,16 +132,10 @@ function onRowChange(e) {
         const mat = materials.find(m => m.id === row.materialId);
         
         if (mat) {
-            // Get price per unit and quantity from Firestore.
-            let pricePerUnit = mat.pricePerUnit;
-            let unit = mat.quantityUnit;
-            let quantity = mat.quantity;
-            
-            // Set quantity and price based on the unit received from Firestore (kg or gram)
-            row.unit = unit;
-            row.quantity = quantity;
-            row.costPerUnit = pricePerUnit;
-
+            // Firestore mein unit `quantityUnit` hai aur price per unit `pricePerUnit`.
+            row.unit = mat.quantityUnit;
+            row.quantity = mat.quantity;
+            row.costPerUnit = mat.pricePerUnit;
         } else {
             row.quantity = 0;
             row.costPerUnit = 0;
@@ -131,24 +144,23 @@ function onRowChange(e) {
     } else if (e.target.classList.contains('qtyInput')) {
         row.quantity = +e.target.value;
     } else if (e.target.classList.contains('unitSelect')) {
-        row.unit = e.target.value;
         const mat = materials.find(m => m.id === row.materialId);
+        const newUnit = e.target.value;
 
         if (mat) {
             const totalCalculatedPrice = mat.price;
             let quantityInGrams = mat.quantityUnit === 'kg' ? mat.quantity * 1000 : mat.quantity;
 
-            // Recalculate pricePerUnit based on the new unit
-            if (row.unit === 'kg') {
+            if (newUnit === 'kg') {
                 row.costPerUnit = totalCalculatedPrice / (quantityInGrams / 1000);
-            } else if (row.unit === 'gram') {
+            } else if (newUnit === 'gram') {
                 row.costPerUnit = totalCalculatedPrice / quantityInGrams;
             }
+            row.unit = newUnit;
         }
     }
     
     row.totalCost = row.quantity * (row.costPerUnit || 0);
-
     renderRows();
 }
 
@@ -187,8 +199,38 @@ document.getElementById('addRowBtn').onclick = () => {
 numBottlesInput.oninput = updateTotals;
 costPerBottleInput.oninput = updateTotals;
 
+/**
+ * Saves the product price calculation to Firestore.
+ * @param {object} productData - The object containing all product pricing information.
+ */
+async function saveProductPrice(productData) {
+    try {
+        await initializeFirebase();
+        if (!db || !auth.currentUser) {
+            throw new Error("User is not authenticated. Please log in and try again.");
+        }
+        
+        const collectionPath = `/artifacts/${appId}/users/${auth.currentUser.uid}/products`;
+        await addDoc(collection(db, collectionPath), productData);
+        showMessage('Product price saved successfully!', 'success');
+    } catch (error) {
+        console.error("Error saving product price:", error);
+        if (error.code === 'permission-denied') {
+            showMessage('Permission denied. Please check your Firestore security rules.', 'error');
+        } else {
+            showMessage('Failed to save product price. Please try again.', 'error');
+        }
+    }
+}
+
+
 // Calculate price when the button is clicked
-calcBtn.onclick = () => {
+calcBtn.onclick = async () => {
+    // Show loading state
+    calcBtn.disabled = true;
+    buttonText.classList.add('hidden');
+    loadingIndicator.classList.remove('hidden');
+
     const totalMaterial = materialRows.reduce((sum, r) => sum + (r.totalCost || 0), 0);
     const numBottles = +numBottlesInput.value;
     const costPerBottle = +costPerBottleInput.value;
@@ -200,6 +242,9 @@ calcBtn.onclick = () => {
                 Please enter a valid number of bottles (greater than 0).
             </div>
         `;
+        calcBtn.disabled = false;
+        buttonText.classList.remove('hidden');
+        loadingIndicator.classList.add('hidden');
         return;
     }
 
@@ -219,6 +264,42 @@ calcBtn.onclick = () => {
     document.getElementById('resultMargin2').textContent = `₹${margin2.toFixed(2)}`;
     document.getElementById('resultTotalPrice').textContent = `₹${totalSellingPrice.toFixed(2)}`;
     document.getElementById('resultPricePerBottle').textContent = `₹${grossPerBottle.toFixed(2)}`;
+
+    // Prepare data for saving
+    const productData = {
+        name: `Product Calculation - ${new Date().toLocaleString()}`,
+        materialsUsed: materialRows.map(row => {
+            const materialInfo = materials.find(m => m.id === row.materialId) || {};
+            return {
+                materialId: row.materialId,
+                materialName: materialInfo.material,
+                quantity: row.quantity,
+                unit: row.unit,
+                costPerUnit: row.costPerUnit,
+                totalCost: row.totalCost,
+            };
+        }),
+        bottleInfo: {
+            numBottles: numBottles,
+            costPerBottle: costPerBottle,
+        },
+        calculations: {
+            baseCost: baseCost,
+            margin1: margin1,
+            margin2: margin2,
+            totalSellingPrice: totalSellingPrice,
+            grossPerBottle: grossPerBottle,
+        },
+        timestamp: Timestamp.now(),
+    };
+
+    // Call the new function to save to Firestore
+    await saveProductPrice(productData);
+    
+    // Hide loading state
+    calcBtn.disabled = false;
+    buttonText.classList.remove('hidden');
+    loadingIndicator.classList.add('hidden');
 };
 
 /**

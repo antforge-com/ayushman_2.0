@@ -1,4 +1,5 @@
 import { db, auth, appId, initializeFirebase, collection, onSnapshot, query, where, Timestamp } from './firebase-config.js';
+import { doc, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const materialsListContainer = document.getElementById('materialsList');
 const searchBtn = document.getElementById('searchBtn');
@@ -9,11 +10,38 @@ const searchByDealerBtn = document.getElementById('searchByDealerBtn');
 const searchByDateBtn = document.getElementById('searchByDateBtn');
 const dealerSearchForm = document.getElementById('dealerSearchForm');
 const dateSearchForm = document.getElementById('dateSearchForm');
+const statusMessageDiv = document.getElementById('statusMessage');
+
+// New Modal Elements for Edit and Delete
+const editModal = document.getElementById('editModal');
+const closeEditModalBtn = document.getElementById('closeEditModalBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+const editForm = document.getElementById('editForm');
+
+const deleteModal = document.getElementById('deleteModal');
+const closeDeleteModalBtn = document.getElementById('closeDeleteModalBtn');
+const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
 let unsubscribe = null; // Firestore listener के लिए unsubscribe function store करने के लिए variable.
+let selectedMaterialIdForDeletion = null;
 
 /**
- * जांच करता है कि उपयोगकर्ता प्रमाणित (authenticated) है या नहीं और डेटा श्रोता (listener) को सेट करता है।
+ * User ko message dikhata hai.
+ * @param {string} message Dikhane wala message.
+ * @param {string} type Message ka prakar ('success', 'error', 'info').
+ */
+function showMessage(message, type) {
+    statusMessageDiv.textContent = message;
+    statusMessageDiv.className = `message-box message-${type}`;
+    statusMessageDiv.classList.remove('hidden');
+    setTimeout(() => {
+        statusMessageDiv.classList.add('hidden');
+    }, 5000);
+}
+
+/**
+ * जांच करता है कि उपयोगकर्ता प्रमाणित (authenticated) है या नहीं और डेटा श्रोता (listener) ko सेट करता है।
  */
 const setupAuthCheck = async () => {
     try {
@@ -54,9 +82,6 @@ const setupMaterialListener = (currentUserId, optionalQuery = []) => {
     let baseQuery = collection(db, collectionPath);
     let finalQuery = query(baseQuery, ...optionalQuery);
     
-    // NOTE: Sorting is now done client-side to avoid index issues with Firestore.
-    // Firestore queries will not work with `orderBy` on multiple fields without a composite index.
-
     unsubscribe = onSnapshot(finalQuery, (snapshot) => {
         const materials = [];
         snapshot.forEach(doc => {
@@ -90,9 +115,15 @@ const displayMaterials = (materials) => {
     const materialCards = materials.map(item => {
         const date = item.timestamp ? item.timestamp.toDate().toLocaleDateString() : 'N/A';
         const time = item.timestamp ? item.timestamp.toDate().toLocaleTimeString() : 'N/A';
-        
-        const pricePerUnit = item.pricePerUnit !== undefined ? `₹${item.pricePerUnit}` : 'N/A';
-        const quantity = item.quantity !== undefined ? `${item.quantity}` : 'N/A';
+        const isLowQuantity = (item.quantityUnit === 'kg' && item.quantity < 1) || (item.quantityUnit === 'gram' && item.quantity < 1000);
+
+        // GST Number or a placeholder
+        const gstNumberDisplay = item.gstNumber ? `<p><strong>GST Number:</strong> <span>${item.gstNumber}</span></p>` : '';
+        // Description or a placeholder
+        const descriptionDisplay = item.description ? `<p><strong>Description:</strong> <span>${item.description}</span></p>` : '';
+
+        const pricePerUnit = item.pricePerUnit !== undefined ? `₹${item.pricePerUnit.toFixed(2)}` : 'N/A';
+        const quantity = item.quantity !== undefined ? `${item.quantity.toFixed(2)}` : 'N/A';
         const unit = item.quantityUnit || 'N/A';
         const price = item.price !== undefined ? `₹${item.price.toFixed(2)}` : 'N/A';
         const gst = item.gst !== undefined ? `₹${item.gst.toFixed(2)}` : 'N/A';
@@ -100,21 +131,46 @@ const displayMaterials = (materials) => {
         const total = (item.price !== undefined && item.gst !== undefined && item.hamali !== undefined) ? 
                       `₹${(item.price + item.gst + item.hamali).toFixed(2)}` : 'N/A';
 
+        // Bill Photo Link
+        const billPhotoDisplay = item.billPhotoUrl ? `
+            <p><strong>Bill Photo:</strong> 
+                <a href="${item.billPhotoUrl}" target="_blank" class="text-blue-500 hover:underline">
+                    View Photo <i class="fa-solid fa-up-right-from-square"></i>
+                </a>
+            </p>
+        ` : '';
+
         return `
             <article class="purchase-card">
                 <header class="purchase-header flex justify-between items-center" data-id="${item.id}">
-                    <h3>${item.material || 'Material Name'}</h3>
-                    <i class="fa-solid fa-chevron-down toggle-icon"></i>
+                    <div class="flex items-center gap-2">
+                        <h3>${item.material || 'Material Name'}</h3>
+                        ${isLowQuantity ? '<span class="low-quantity-badge">Low Quantity!</span>' : ''}
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="card-actions">
+                            <button class="action-btn edit-btn" onclick="editMaterial('${item.id}', event)">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button class="action-btn delete-btn" onclick="openDeleteModal('${item.id}', event)">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                        <i class="fa-solid fa-chevron-down toggle-icon"></i>
+                    </div>
                 </header>
                 <div class="purchase-body hidden" id="details-${item.id}">
                     <div class="purchase-details flex flex-col gap-2">
-                        <p><strong>Dealer:</strong> <span>${item.dealer || 'Dealer'}</span></p>
+                        <p><strong>Dealer:</strong> <span>${item.dealer || 'N/A'}</span></p>
+                        ${gstNumberDisplay}
+                        ${descriptionDisplay}
                         <p><strong>Quantity:</strong> <span>${quantity} ${unit}</span></p>
                         <p><strong>Price per unit:</strong> <span>${pricePerUnit}</span></p>
                         <p><strong>Total Price:</strong> <span>${price}</span></p>
                         <p><strong>GST Amount:</strong> <span>${gst}</span></p>
                         <p><strong>Hamali:</strong> <span>${hamali}</span></p>
                         <p><strong>Grand Total:</strong> <span>${total}</span></p>
+                        ${billPhotoDisplay}
                         <p><strong>Added on:</strong> <span>${date} at ${time}</span></p>
                     </div>
                 </div>
@@ -143,7 +199,52 @@ const displayMaterials = (materials) => {
     });
 };
 
-// Modal and Search Logic
+/**
+ * Edit modal kholta hai aur form ko material data se populate karta hai.
+ * @param {string} materialId - Edit karne ke liye material ka ID.
+ * @param {Event} event - event object ko stop karne ke liye.
+ */
+window.editMaterial = async (materialId, event) => {
+    event.stopPropagation(); // Card ko expand hone se rokein
+    window.location.href = `add-material.html?editId=${materialId}`;
+};
+
+/**
+ * Delete confirmation modal kholta hai.
+ * @param {string} materialId - Delete karne ke liye material ka ID.
+ * @param {Event} event - event object ko stop karne ke liye.
+ */
+window.openDeleteModal = (materialId, event) => {
+    event.stopPropagation(); // Card ko expand hone se rokein
+    selectedMaterialIdForDeletion = materialId;
+    deleteModal.classList.remove('hidden');
+};
+
+/**
+ * Firestore se ek material document delete karta hai.
+ */
+const deleteMaterial = async () => {
+    const user = auth.currentUser;
+    if (!user || !selectedMaterialIdForDeletion) {
+        showMessage('Error deleting material: Authentication or ID missing.', 'error');
+        return;
+    }
+
+    try {
+        const collectionPath = `/artifacts/${appId}/users/${user.uid}/materials`;
+        const docRef = doc(db, collectionPath, selectedMaterialIdForDeletion);
+        await deleteDoc(docRef);
+        showMessage('Material deleted successfully!', 'success');
+        deleteModal.classList.add('hidden');
+    } catch (error) {
+        console.error("Error deleting material:", error);
+        showMessage('Failed to delete material. Please try again.', 'error');
+    } finally {
+        selectedMaterialIdForDeletion = null;
+    }
+};
+
+// Modal aur Search Logic
 searchBtn.addEventListener('click', () => {
     searchModal.classList.remove('hidden');
 });
@@ -198,6 +299,11 @@ dateSearchForm.addEventListener('submit', (e) => {
         dateSearchForm.classList.add('hidden');
     }
 });
+
+// Delete Confirmation & Cancel Listeners
+confirmDeleteBtn.addEventListener('click', deleteMaterial);
+closeDeleteModalBtn.addEventListener('click', () => deleteModal.classList.add('hidden'));
+cancelDeleteBtn.addEventListener('click', () => deleteModal.classList.add('hidden'));
 
 // Drawer toggle logic (reused from index.html)
 document.addEventListener('DOMContentLoaded', () => {

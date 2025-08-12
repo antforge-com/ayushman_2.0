@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="Add materials to the database">
-    <title>Add Material - Product App</title>
+    <meta name="description" content="Add or edit materials in the database">
+    <title>Material Entry - Product App</title>
 
     <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,7 +16,7 @@
 
     <style>
         :root {
-            --bg: #ffffff;
+            --bg: #f9fafb;
             --surface: #ffffff;
             --primary: #234123;
             --primary-600: #1d361d;
@@ -24,7 +24,7 @@
             --text: #1f2937;
             --muted: #6b7280;
             --border: #e5e7eb;
-            --shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
             --radius: 14px;
         }
 
@@ -32,10 +32,10 @@
         * {
             box-sizing: border-box;
             font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
         }
 
-        html,
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             background: var(--bg);
@@ -106,7 +106,6 @@
             top: 7px;
         }
         
-        /* New styles for the left-aligned circular logo */
         .left-logo-wrap {
             display: flex;
             align-items: center;
@@ -200,18 +199,29 @@
 
         .form-card {
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             margin: 0 auto;
             border-radius: var(--radius);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            box-shadow: var(--shadow);
             background: var(--surface);
             border: 1px solid var(--border);
             padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
         }
 
         /* Form elements */
         .form-group {
-            margin-bottom: 1.25rem;
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group.grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
         }
 
         .form-group label {
@@ -222,14 +232,9 @@
             margin-bottom: 0.5rem;
         }
 
-        /* New styles for the input and select group */
-        .input-group {
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        .input-group input,
-        .input-group select {
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
             width: 100%;
             padding: 0.75rem 1rem;
             font-size: 1rem;
@@ -238,28 +243,74 @@
             background: #fafafa;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-
-        .input-group input {
-            flex-grow: 1;
+        
+        input[readonly], textarea[readonly] {
+            background-color: #e9e9e9;
+            color: #6b7280;
+            cursor: not-allowed;
         }
 
-        .input-group select {
-            flex-grow: 0;
-            width: auto;
-        }
 
         .form-group input:focus,
-        .input-group input:focus,
-        .input-group select:focus {
+        .form-group select:focus,
+        .form-group textarea:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 2px rgba(35, 65, 35, 0.2);
         }
+        
+        /* Custom file input styling */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            cursor: pointer;
+            width: 100%;
+        }
 
-        .form-group input[readonly] {
-            background: #e9e9e9;
-            color: #666;
-            cursor: not-allowed;
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+        }
+
+        .file-input-display {
+            background: #fafafa;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .file-input-display span {
+            color: var(--muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-input-display .icon {
+            color: var(--primary);
+        }
+        
+        .file-preview {
+            margin-top: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem;
+            display: none;
+        }
+        
+        .file-preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
         }
 
         .btn {
@@ -282,6 +333,14 @@
             box-shadow: 0 8px 20px rgba(35, 65, 35, 0.25);
         }
 
+        .btn:disabled {
+            background: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         /* Updated and more attractive design for the "View All Purchases" button */
         .btn-view-purchases {
             display: inline-flex;
@@ -296,7 +355,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
-            text-decoration: none; /* Removed underline */
+            text-decoration: none;
             box-shadow: 0 4px 15px rgba(124, 197, 143, 0.25);
         }
         
@@ -306,24 +365,20 @@
             box-shadow: 0 8px 20px rgba(124, 197, 143, 0.35);
         }
         
-        /* Updated icon styling for the eye icon */
         .btn-view-purchases i {
             color: var(--primary);
             transition: transform 0.2s ease;
         }
         
-        .btn-view-purchases:hover i {
-            transform: translateX(0); /* Eye icon doesn't need to move */
-        }
-
         /* Message styling */
         #addMaterialMsg {
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             margin: 1.5rem auto 0;
             box-sizing: border-box;
             padding: 1rem;
             border-radius: 8px;
+            font-size: 0.9rem;
         }
 
         .message-success {
@@ -336,6 +391,12 @@
             color: #872a2a;
             background: #f9e6e7;
             border-left: 4px solid #872a2a;
+        }
+        
+        .message-info {
+            color: #1e40af;
+            background: #eff6ff;
+            border-left: 4px solid #1e40af;
         }
 
         .hidden {
@@ -352,6 +413,21 @@
             line-height: 1.2;
             border-bottom: 2px solid #e0e0e0;
             padding-bottom: 0.5rem;
+        }
+        
+        /* Loading spinner for button */
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         /* Responsive overrides */
@@ -371,6 +447,10 @@
             .main-heading {
                 font-size: 2rem;
             }
+            
+            .form-group.grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -379,22 +459,19 @@
     <!-- Top bar with hamburger + brand -->
     <header class="topbar" role="banner">
         <div class="left-logo-wrap">
-            <!-- Left-side circular logo -->
-            <img src="assets/owner.jpg" alt="User Logo">
+            <img src="assets/owner.jpg" onerror="this.onerror=null; this.src='https://placehold.co/40x40/e5e7eb/6b7280?text=O'" alt="User Logo">
             <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open navigation" aria-controls="drawerNav"
                 aria-expanded="false">
                 <span class="hamburger" aria-hidden="true"></span>
             </button>
         </div>
-        <!-- Right-side brand logo -->
-        <img src="assets/vasavi-logo.png" alt="Vasavi Ayurveda Logo" class="topbar-logo">
+        <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/84x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo" class="topbar-logo">
     </header>
 
     <!-- Drawer navigation -->
     <nav class="drawer" id="drawerNav" aria-hidden="true">
         <div class="drawer-logo">
-            <!-- Logo loaded directly from file -->
-            <img src="assets/vasavi-logo.png" alt="Vasavi Ayurveda Logo">
+            <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/80x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo">
         </div>
         <a href="index.html" class="drawer-link">Home</a>
         <a href="add-material.html" class="drawer-link active">Add Material</a>
@@ -409,24 +486,32 @@
     <!-- Main Content -->
     <main class="main">
         <h2 class="main-heading">Add New Material</h2>
-        <!-- Updated "View All Purchases" button -->
         <a href="all-materials.html" class="btn-view-purchases">
             <i class="fa-solid fa-eye"></i> View All Purchases
         </a>
 
         <!-- Form for adding materials -->
         <form id="materialForm" class="form-card">
+            <input type="hidden" id="materialId">
             <div class="form-group">
                 <label for="material">Material Name</label>
                 <input name="material" id="material" required placeholder="Enter Material Name">
             </div>
             <div class="form-group">
-                <label for="dealer">Dealer Name</label>
-                <input name="dealer" id="dealer" required placeholder="Enter name of the dealer">
+                <label for="dealer">Dealer Name (Optional)</label>
+                <input name="dealer" id="dealer" placeholder="Enter name of the dealer">
+            </div>
+            <div class="form-group">
+                <label for="gstNumber">GST Number</label>
+                <input name="gstNumber" id="gstNumber" placeholder="Enter dealer's GST number">
+            </div>
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea name="description" id="description" rows="3" placeholder="Enter a short description of the purchase"></textarea>
             </div>
             <div class="form-group">
                 <label for="quantity">Quantity</label>
-                <div class="input-group">
+                <div class="form-group grid" style="grid-template-columns: 2fr 1fr; gap: 0.75rem;">
                     <input name="quantity" id="quantity" type="number" min="1" required placeholder="Enter Quantity">
                     <select id="quantityUnit" name="quantityUnit">
                         <option value="kg">kg</option>
@@ -435,9 +520,8 @@
                 </div>
             </div>
             <div class="form-group">
-                <label for="pricePerUnit">Price</label>
-                <input name="pricePerUnit" id="pricePerUnit" type="number" min="0" required
-                    placeholder="Price per kg">
+                <label for="pricePerUnit" id="priceLabel">Price per kg</label>
+                <input name="pricePerUnit" id="pricePerUnit" type="number" min="0" required placeholder="Price per kg">
             </div>
             <div class="form-group">
                 <label for="price">Calculated Price</label>
@@ -445,16 +529,28 @@
             </div>
             <div class="form-group">
                 <label for="gst">GST Amount</label>
-                <input name="gst" id="gst" type="number" min="0" required placeholder="Enter GST Amount">
+                <input name="gst" id="gst" type="number" min="0" required value="0" placeholder="Enter GST Amount">
             </div>
             <div class="form-group">
                 <label for="hamali">Hamali (Loading/Unloading Charges)</label>
-                <input name="hamali" id="hamali" type="number" min="0" required
-                    placeholder="Enter Hamali Amount">
+                <input name="hamali" id="hamali" type="number" min="0" required value="0" placeholder="Enter Hamali Amount">
+            </div>
+            <div class="form-group">
+                <label for="billPhoto">Bill Photo</label>
+                <div class="file-input-wrapper">
+                    <input type="file" id="billPhoto" name="billPhoto" accept="image/*">
+                    <div class="file-input-display">
+                        <span id="file-name">Select an image...</span>
+                        <i class="fa-solid fa-cloud-arrow-up icon"></i>
+                    </div>
+                </div>
+                <div id="file-preview" class="file-preview">
+                    <img id="preview-image" src="#" alt="Bill Preview">
+                </div>
             </div>
             <button class="btn" type="submit">
                 <span id="buttonText">+ Add Purchase</span>
-                <span id="loadingIndicator" class="hidden">Adding...</span>
+                <div id="loadingIndicator" class="loading-spinner hidden"></div>
             </button>
         </form>
 
@@ -463,174 +559,7 @@
     </main>
 
     <!-- Firebase and Form Logic -->
-    <script type="module">
-        import { db, userId, appId, initializeFirebase, collection, addDoc, Timestamp } from "./firebase-config.js";
-
-        /**
-         * Displays a message to the user.
-         * @param {string} message The message to display.
-         * @param {string} type The type of message ('success' or 'error').
-         */
-        function showMessage(message, type) {
-            const msgDiv = document.getElementById('addMaterialMsg');
-            msgDiv.textContent = message;
-            msgDiv.className = `p-4 text-sm font-medium ${type === 'success' ? 'message-success' : 'message-error'}`;
-            setTimeout(() => {
-                msgDiv.className = 'hidden';
-            }, 5000);
-        }
-
-        /**
-         * Calculates the total price based on quantity and price per unit.
-         * The calculation now uses a price per gram derived from the price per kg.
-         */
-        function calculateTotalPrice() {
-            const quantity = parseFloat(document.getElementById('quantity').value);
-            const quantityUnit = document.getElementById('quantityUnit').value;
-            const pricePerUnit = parseFloat(document.getElementById('pricePerUnit').value);
-            const priceInput = document.getElementById('price');
-            
-            if (!isNaN(quantity) && !isNaN(pricePerUnit)) {
-                let totalprice = 0;
-                let convertedQuantityInGrams = 0;
-                
-                // Convert price per kg to price per gram
-                const pricePerGram = pricePerUnit / 1000;
-
-                // Convert the quantity to grams for consistent calculation
-                if (quantityUnit === 'kg') {
-                    convertedQuantityInGrams = quantity * 1000;
-                } else if (quantityUnit === 'gram') {
-                    convertedQuantityInGrams = quantity;
-                }
-                
-                totalprice = convertedQuantityInGrams * pricePerGram;
-                priceInput.value = totalprice.toFixed(2);
-            } else {
-                priceInput.value = '';
-            }
-        }
-
-        // Add event listeners for the new input and select
-        document.getElementById('quantity').addEventListener('input', calculateTotalPrice);
-        document.getElementById('quantityUnit').addEventListener('change', calculateTotalPrice);
-        document.getElementById('pricePerUnit').addEventListener('input', calculateTotalPrice);
-
-        document.getElementById('materialForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const form = e.target;
-            const button = form.querySelector('.btn');
-            const buttonText = document.getElementById('buttonText');
-            const loadingIndicator = document.getElementById('loadingIndicator');
-
-            button.disabled = true;
-            buttonText.classList.add('hidden');
-            loadingIndicator.classList.remove('hidden');
-
-            try {
-                // Wait for Firebase to be initialized and user to be authenticated.
-                await initializeFirebase();
-                
-                const material = form.material.value;
-                const dealer = form.dealer.value;
-                const quantity = parseFloat(form.quantity.value);
-                const quantityUnit = form.quantityUnit.value;
-                const pricePerUnit = parseFloat(form.pricePerUnit.value);
-                // Correctly get the price value after calculation
-                const price = parseFloat(document.getElementById('price').value);
-                const gst = parseFloat(form.gst.value);
-                const hamali = parseFloat(form.hamali.value);
-                
-                // Check if user is authenticated before attempting to write to Firestore
-                if (!db || !userId) {
-                    throw new Error("User is not authenticated. Please log in and try again.");
-                }
-                
-                const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
-                await addDoc(collection(db, collectionPath), {
-                    material,
-                    dealer,
-                    quantity,
-                    quantityUnit,
-                    pricePerUnit,
-                    price,
-                    gst,
-                    hamali,
-                    timestamp: Timestamp.now()
-                });
-
-                showMessage('Material added successfully!', 'success');
-                form.reset();
-                document.getElementById('price').value = '';
-            } catch (error) {
-                console.error("Error adding document: ", error);
-                // Display a more user-friendly message for permission errors
-                if (error.code === 'permission-denied') {
-                    showMessage('Permission denied. Please check your Firestore security rules.', 'error');
-                } else {
-                    showMessage('Failed to add material. Please check the form and try again.', 'error');
-                }
-            } finally {
-                button.disabled = false;
-                buttonText.classList.remove('hidden');
-                loadingIndicator.classList.add('hidden');
-            }
-        });
-
-        // Initialize Firebase on page load and ensure auth state is ready
-        window.onload = async () => {
-            try {
-                await initializeFirebase();
-            } catch (err) {
-                console.error("Initialization failed:", err);
-            }
-        };
-
-        // Drawer toggle logic (reused from index.html)
-        document.addEventListener('DOMContentLoaded', () => {
-            const btn = document.getElementById('hamburgerBtn');
-            const drawer = document.getElementById('drawerNav');
-            const backdrop = document.getElementById('backdrop');
-
-            if (btn && drawer && backdrop) { // Ensure elements exist before adding listeners
-                function openDrawer() {
-                    drawer.classList.add('open');
-                    backdrop.classList.add('open');
-                    drawer.setAttribute('aria-hidden', 'false');
-                    btn.setAttribute('aria-expanded', 'true');
-                    const firstLink = drawer.querySelector('a');
-                    if (firstLink) firstLink.focus({ preventScroll: true });
-                    document.body.style.overflow = 'hidden';
-                }
-
-                function closeDrawer() {
-                    drawer.classList.remove('open');
-                    backdrop.classList.remove('open');
-                    drawer.setAttribute('aria-hidden', 'true');
-                    btn.setAttribute('aria-expanded', 'false');
-                    btn.focus({ preventScroll: true });
-                    document.body.style.overflow = '';
-                }
-
-                btn.addEventListener('click', () => {
-                    drawer.classList.contains('open') ? closeDrawer() : openDrawer();
-                });
-
-                backdrop.addEventListener('click', closeDrawer);
-
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
-                });
-
-                drawer.addEventListener('click', (e) => {
-                    if (e.target.closest('a[href]')) closeDrawer();
-                });
-            } else {
-                console.error('Drawer elements not found. Check your HTML IDs.');
-            }
-        });
-    </script>
+    <script type="module" src="add-material.js"></script>
 </body>
 
 </html>
