@@ -572,45 +572,5 @@
     </section>
   </main>
   <script type="module" src="product-price.js"></script>
-  <!-- Drawer toggle script -->
-  <script>
-    (function () {
-      const btn = document.getElementById('hamburgerBtn');
-      const drawer = document.getElementById('drawerNav');
-      const backdrop = document.getElementById('backdrop');
-
-      if (btn && drawer && backdrop) {
-        function openDrawer() {
-          drawer.classList.add('open');
-          backdrop.classList.add('open');
-          drawer.setAttribute('aria-hidden', 'false');
-          btn.setAttribute('aria-expanded', 'true');
-          const firstLink = drawer.querySelector('a');
-          if (firstLink) firstLink.focus({ preventScroll: true });
-          document.body.style.overflow = 'hidden';
-        }
-        function closeDrawer() {
-          drawer.classList.remove('open');
-          backdrop.classList.remove('open');
-          drawer.setAttribute('aria-hidden', 'true');
-          btn.setAttribute('aria-expanded', 'false');
-          btn.focus({ preventScroll: true });
-          document.body.style.overflow = '';
-        }
-        btn.addEventListener('click', () => {
-          drawer.classList.contains('open') ? closeDrawer() : openDrawer();
-        });
-        backdrop.addEventListener('click', closeDrawer);
-        document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
-        });
-        drawer.addEventListener('click', (e) => {
-          if (e.target.closest('a[href]')) closeDrawer();
-        });
-      } else {
-        console.error('Drawer elements not found. Check your HTML IDs.');
-      }
-    })();
-  </script>
 </body>
 </html>

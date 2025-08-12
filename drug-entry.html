@@ -15,6 +15,7 @@
 
     <style>
         :root {
+            /* Changed to match the common app theme (e.g., index.html, add-material.html) */
             --bg: #ffffff;
             --surface: #ffffff;
             --primary: #234123;
@@ -33,8 +34,7 @@
             font-family: 'Inter', sans-serif;
         }
 
-        html,
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             background: var(--bg);
@@ -84,6 +84,7 @@
             background: var(--primary);
             position: relative;
             display: block;
+            transition: transform 0.2s ease, top 0.2s ease, opacity 0.2s ease;
         }
 
         .hamburger::before,
@@ -264,9 +265,9 @@
         .btn:hover {
             background: var(--primary-600);
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(35, 65, 35, 0.25);
+            box-shadow: 8px 20px rgba(35, 65, 35, 0.25);
         }
-        
+
         .add-remove-container {
             display: flex;
             justify-content: space-between;
@@ -288,12 +289,14 @@
         }
 
         .add-btn {
+            /* Updated to match the new accent color */
             color: var(--primary);
             border-color: var(--accent);
             background-color: #e6f7e7;
         }
 
         .add-btn:hover {
+            /* Updated to match the new accent color */
             background-color: #d1e8d2;
         }
 
@@ -341,7 +344,7 @@
             margin-top: 10px;
             align-items: center;
         }
-        
+
         .multi-input-row input {
             flex: 1;
             margin-top: 0;
@@ -350,6 +353,7 @@
         .chip {
             padding: 8px 12px;
             border-radius: 20px;
+            /* Updated chip border and background color to match the new color scheme */
             border: 1px solid #c5e1a5;
             background-color: #e8f5e9;
             color: #388e3c;
@@ -360,7 +364,7 @@
             align-items: center;
             gap: 5px;
         }
-
+        
         .chip.selected {
             background-color: #c8e6c9;
             border-color: #8bc34a;
@@ -374,7 +378,7 @@
         .chip .icon {
             font-size: 16px;
         }
-        
+
         /* Heading styling */
         .main-heading {
             font-size: clamp(2rem, 3vw, 2.5rem);
@@ -383,7 +387,7 @@
             margin-bottom: 1rem;
             letter-spacing: -0.5px;
             line-height: 1.2;
-            border-bottom: 2px solid #e0e0e0;
+            border-bottom: 2px solid var(--border);
             padding-bottom: 0.5rem;
         }
 
@@ -542,7 +546,7 @@
 
             <label class="section-title" for="sideEffects">Side Effects (if any)</label>
             <textarea id="sideEffects" rows="5" placeholder="Enter side effects here"></textarea>
-            
+
             <label class="section-title">Custom Fields</label>
             <div id="anotherFieldsContainer">
                 <!-- Dynamic custom fields will be added here -->
@@ -565,7 +569,8 @@
 
     <!-- Firebase and Form Logic -->
     <script type="module">
-        import { db, userId, appId, initializeFirebase, collection, addDoc, getDocs, onAuthStateChanged, Timestamp } from "./firebase-config.js";
+        import { db, userId, appId, initializeFirebase, collection, addDoc, getDocs, Timestamp } from "./firebase-config.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         // Pre-defined categories
         let _allCategories = [
@@ -589,6 +594,10 @@
             msgDiv.textContent = message;
             msgDiv.className = `p-4 text-sm font-medium ${type === 'success' ? 'message-success' : type === 'error' ? 'message-error' : 'message-info'}`;
             msgDiv.classList.remove('hidden');
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                msgDiv.classList.add('hidden');
+            }, 5000);
         }
 
         function hideMessage() {
@@ -598,15 +607,15 @@
 
         // --- Category Management ---
         async function fetchAndSetCategories() {
-            if (!db || !userId) {
-                console.warn("Firestore instance or user ID not available, cannot fetch categories.");
-                return;
-            }
             try {
+                await initializeFirebase(); // Ensure Firebase is initialized
+                if (!db || !userId) {
+                    throw new Error("Firestore instance or user ID not available, cannot fetch categories.");
+                }
                 const fetchedCategoriesSet = new Set(_allCategories);
                 const collectionPath = `/artifacts/${appId}/users/${userId}/drugs`;
                 const querySnapshot = await getDocs(collection(db, collectionPath));
-                
+
                 querySnapshot.forEach(doc => {
                     const drugData = doc.data();
                     const categories = drugData['categories'];
@@ -657,7 +666,7 @@
             } else {
                 customCategoriesSection.classList.add('hidden');
                 _selectedCategories = _selectedCategories.filter(cat => _allCategories.includes(cat));
-                customCategoryFields = customCategoryFields.filter(field => _allCategories.includes(field.input.value.trim()));
+                customCategoryFields = [];
                 renderCustomCategoryFields();
             }
         }
@@ -683,7 +692,7 @@
             const groupDiv = document.createElement("div");
             groupDiv.className = "dynamic-field-group";
             container.appendChild(groupDiv);
-            
+
             const removeBtn = document.createElement("button");
             removeBtn.type = "button";
             removeBtn.className = "remove-btn";
@@ -810,6 +819,10 @@
             input.required = true;
             input.oninput = () => {
                 const categoryText = input.value.trim();
+                if (customCategoryFields.some(field => field.input.value.trim() === categoryText && field.input !== input)) {
+                    showMessage("This category already exists.", 'error');
+                    return;
+                }
                 _selectedCategories = _selectedCategories.filter(cat => cat !== categoryText);
                 if (categoryText) {
                     _selectedCategories.push(categoryText);
@@ -830,7 +843,7 @@
             customCategoryFields.push({ input: input, div: groupDiv });
             updateRemoveButtonVisibility("removeCustomCategoryBtn", customCategoryFields);
         }
-        
+
         function renderCustomCategoryFields() {
             const container = document.getElementById("customCategoryFields");
             container.innerHTML = '';
@@ -854,19 +867,22 @@
 
             try {
                 await initializeFirebase();
-                
+
                 if (!db || !userId) {
                     throw new Error("User is not authenticated. Please log in and try again.");
                 }
 
                 const drugName = form.querySelector("#drugName").value.trim();
+                if (!drugName) {
+                    throw new Error("Drug name cannot be empty.");
+                }
                 const drugDetails = form.querySelector("#drugDetails").value.trim();
                 const preparation = form.querySelector("#preparation").value.trim();
                 const anupana = form.querySelector("#anupana").value.trim();
                 const balances = form.querySelector("#balances").value.trim();
                 const uses = form.querySelector("#uses").value.trim();
                 const sideEffects = form.querySelector("#sideEffects").value.trim();
-                
+
                 const extraInformation = form.querySelector("#extraInformation")?.value?.trim() || '';
 
                 const diseases = diseaseFields.map(field => ({
@@ -877,20 +893,14 @@
                 const ingredients = ingredientFields.map(field => ({
                     name: field.nameInput.value.trim(),
                     mg: field.qtyInput.value.trim()
-                })).filter(i => i.name || i.mg);
+                })).filter(i => i.name && i.mg);
 
                 const anotherFieldsData = anotherFields.map(field => ({
                     fieldName: field.nameInput.value.trim(),
                     fieldValue: field.valueInput.value.trim()
                 })).filter(f => f.fieldName || f.fieldValue);
-                
-                const finalCategories = [..._selectedCategories];
-                customCategoryFields.forEach(field => {
-                    const customCatText = field.input.value.trim();
-                    if (customCatText && !finalCategories.includes(customCatText)) {
-                        finalCategories.push(customCatText);
-                    }
-                });
+
+                const finalCategories = [...new Set(_selectedCategories)]; // Remove duplicates
 
                 const drugData = {
                     drugName: drugName,
@@ -907,7 +917,7 @@
                     anotherFields: anotherFieldsData,
                     timestamp: Timestamp.now()
                 };
-                
+
                 const collectionPath = `/artifacts/${appId}/users/${userId}/drugs`;
                 await addDoc(collection(db, collectionPath), drugData);
 
@@ -915,16 +925,16 @@
                 form.reset();
                 _selectedCategories = [];
                 _showAllCategories = false;
-                
+
                 // Clear dynamic fields
                 document.getElementById("diseasesContainer").innerHTML = '';
                 diseaseFields = [];
                 updateRemoveButtonVisibility("removeDiseaseBtn", diseaseFields);
-                
+
                 document.getElementById("ingredientsContainer").innerHTML = '';
                 ingredientFields = [];
                 updateRemoveButtonVisibility("removeIngredientBtn", ingredientFields);
-                
+
                 document.getElementById("anotherFieldsContainer").innerHTML = '';
                 anotherFields = [];
                 updateRemoveButtonVisibility("removeAnotherFieldBtn", anotherFields);
@@ -932,12 +942,14 @@
                 document.getElementById("customCategoryFields").innerHTML = '';
                 customCategoryFields = [];
                 updateRemoveButtonVisibility("removeCustomCategoryBtn", customCategoryFields);
-                
+
                 fetchAndSetCategories();
 
             } catch (err) {
                 console.error("Error submitting drug:", err);
-                if (err.code === 'permission-denied') {
+                if (err.message.includes('Firestore instance or user ID not available')) {
+                    showMessage('Permission denied. Please log in.', 'error');
+                } else if (err.code === 'permission-denied') {
                     showMessage('Permission denied. Please check your Firestore security rules.', 'error');
                 } else {
                     showMessage(`Failed to submit drug: ${err.message}`, 'error');
@@ -950,21 +962,17 @@
         });
 
         // --- Onload Initialization ---
-        window.onload = async () => {
+        window.addEventListener('load', async () => {
             try {
+                // Wait for the Firebase app to be initialized, which also sets up authentication.
                 await initializeFirebase();
-                onAuthStateChanged(auth, user => {
-                    if (user) {
-                        fetchAndSetCategories();
-                    } else {
-                        window.location.href = 'login.html';
-                    }
-                });
+                // We no longer need to call onAuthStateChanged here as it's handled inside initializeFirebase.
+                fetchAndSetCategories();
             } catch (err) {
                 console.error("Initialization failed:", err);
                 showMessage("Firebase initialization failed. Please check your connection.", "error");
             }
-        };
+        });
 
         // --- Event Listeners for Dynamic Buttons ---
         document.getElementById("toggleCategoriesBtn").addEventListener("click", toggleShowAllCategories);
@@ -972,11 +980,23 @@
         document.getElementById("addDiseaseBtn").addEventListener("click", addDiseaseField);
         document.getElementById("addIngredientBtn").addEventListener("click", addIngredientField);
         document.getElementById("addAnotherFieldBtn").addEventListener("click", addAnotherField);
-        document.getElementById("removeCustomCategoryBtn").addEventListener("click", () => removeDynamicField("customCategory", customCategoryFields[customCategoryFields.length - 1].div));
-        document.getElementById("removeDiseaseBtn").addEventListener("click", () => removeDynamicField("disease", diseaseFields[diseaseFields.length - 1].div));
-        document.getElementById("removeIngredientBtn").addEventListener("click", () => removeDynamicField("ingredient", ingredientFields[ingredientFields.length - 1].div));
-        document.getElementById("removeAnotherFieldBtn").addEventListener("click", () => removeDynamicField("anotherField", anotherFields[anotherFields.length - 1].div));
-        
+        document.getElementById("removeCustomCategoryBtn").addEventListener("click", () => {
+            const lastField = customCategoryFields[customCategoryFields.length - 1];
+            if (lastField) removeDynamicField("customCategory", lastField.div);
+        });
+        document.getElementById("removeDiseaseBtn").addEventListener("click", () => {
+            const lastField = diseaseFields[diseaseFields.length - 1];
+            if (lastField) removeDynamicField("disease", lastField.div);
+        });
+        document.getElementById("removeIngredientBtn").addEventListener("click", () => {
+            const lastField = ingredientFields[ingredientFields.length - 1];
+            if (lastField) removeDynamicField("ingredient", lastField.div);
+        });
+        document.getElementById("removeAnotherFieldBtn").addEventListener("click", () => {
+            const lastField = anotherFields[anotherFields.length - 1];
+            if (lastField) removeDynamicField("anotherField", lastField.div);
+        });
+
         // --- Drawer Toggle Logic (reused) ---
         document.addEventListener('DOMContentLoaded', () => {
             const btn = document.getElementById('hamburgerBtn');

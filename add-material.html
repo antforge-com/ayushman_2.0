@@ -12,11 +12,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
         :root {
             --bg: #ffffff;
-            /* Changed to pure white */
             --surface: #ffffff;
             --primary: #234123;
             --primary-600: #1d361d;
@@ -282,22 +282,38 @@
             box-shadow: 0 8px 20px rgba(35, 65, 35, 0.25);
         }
 
+        /* Updated and more attractive design for the "View All Purchases" button */
         .btn-view-purchases {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             margin-bottom: 1.5rem;
             padding: 0.6rem 1.4rem;
-            border-radius: 6px;
-            border: 1px solid #7cc58f;
-            background: #e6f7e7;
+            border-radius: 8px;
+            border: 1px solid var(--accent);
+            background: linear-gradient(135deg, #e6f7e7, #d1e8d2);
             color: var(--primary);
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
+            transition: all 0.2s ease;
+            text-decoration: none; /* Removed underline */
+            box-shadow: 0 4px 15px rgba(124, 197, 143, 0.25);
         }
-
+        
         .btn-view-purchases:hover {
-            background-color: #d1e8d2;
-            transform: translateY(-1px);
+            background: linear-gradient(135deg, #d1e8d2, #b2d7b5);
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 8px 20px rgba(124, 197, 143, 0.35);
+        }
+        
+        /* Updated icon styling for the eye icon */
+        .btn-view-purchases i {
+            color: var(--primary);
+            transition: transform 0.2s ease;
+        }
+        
+        .btn-view-purchases:hover i {
+            transform: translateX(0); /* Eye icon doesn't need to move */
         }
 
         /* Message styling */
@@ -393,7 +409,10 @@
     <!-- Main Content -->
     <main class="main">
         <h2 class="main-heading">Add New Material</h2>
-        <a href="all-materials.html" class="btn-view-purchases">View All Purchases</a>
+        <!-- Updated "View All Purchases" button -->
+        <a href="all-materials.html" class="btn-view-purchases">
+            <i class="fa-solid fa-eye"></i> View All Purchases
+        </a>
 
         <!-- Form for adding materials -->
         <form id="materialForm" class="form-card">

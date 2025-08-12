@@ -16,6 +16,12 @@ const pricingResultsDiv = document.getElementById('pricingResults');
 let materialRows = []; // Stores the current rows for material selection
 let materials = []; // Stores all materials fetched from Firestore
 
+// Drawer toggle elements
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+const drawerNav = document.getElementById('drawerNav');
+const backdrop = document.getElementById('backdrop');
+
+
 /**
  * Fetches all materials from Firebase.
  * @param {string} currentUserId - The ID of the currently logged-in user.
@@ -215,6 +221,65 @@ calcBtn.onclick = () => {
     document.getElementById('resultPricePerBottle').textContent = `₹${grossPerBottle.toFixed(2)}`;
 };
 
+/**
+ * Toggles the visibility of the drawer navigation and backdrop.
+ */
+function toggleDrawer() {
+    if (drawerNav.classList.contains('open')) {
+        closeDrawer();
+    } else {
+        openDrawer();
+    }
+}
+
+/**
+ * Opens the drawer navigation.
+ */
+function openDrawer() {
+    drawerNav.classList.add('open');
+    backdrop.classList.add('open');
+    drawerNav.setAttribute('aria-hidden', 'false');
+    hamburgerBtn.setAttribute('aria-expanded', 'true');
+    const firstLink = drawerNav.querySelector('a');
+    if (firstLink) firstLink.focus({ preventScroll: true });
+    document.body.style.overflow = 'hidden';
+}
+
+/**
+ * Closes the drawer navigation.
+ */
+function closeDrawer() {
+    drawerNav.classList.remove('open');
+    backdrop.classList.remove('open');
+    drawerNav.setAttribute('aria-hidden', 'true');
+    hamburgerBtn.setAttribute('aria-expanded', 'false');
+    hamburgerBtn.focus({ preventScroll: true });
+    document.body.style.overflow = '';
+}
+
+
+// Event listeners for drawer toggle
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if the required elements exist before adding listeners
+    if (hamburgerBtn && drawerNav && backdrop) {
+        hamburgerBtn.addEventListener('click', toggleDrawer);
+        backdrop.addEventListener('click', closeDrawer);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && drawerNav.classList.contains('open')) {
+                closeDrawer();
+            }
+        });
+        drawerNav.addEventListener('click', (e) => {
+            if (e.target.closest('a[href]')) {
+                closeDrawer();
+            }
+        });
+    } else {
+        console.error('Drawer elements not found. Check your HTML IDs.');
+    }
+});
+
+
 // When the DOM is loaded, wait for Firebase auth, then fetch materials
 document.addEventListener('DOMContentLoaded', async () => {
     // First, let Firebase initialize completely
@@ -228,43 +293,4 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = 'login.html';
         }
     });
-});
-
-// Drawer toggle logic
-document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('hamburgerBtn');
-    const drawer = document.getElementById('drawerNav');
-    const backdrop = document.getElementById('backdrop');
-
-    if (btn && drawer && backdrop) {
-        function openDrawer() {
-            drawer.classList.add('open');
-            backdrop.classList.add('open');
-            drawer.setAttribute('aria-hidden', 'false');
-            btn.setAttribute('aria-expanded', 'true');
-            const firstLink = drawer.querySelector('a');
-            if (firstLink) firstLink.focus({ preventScroll: true });
-            document.body.style.overflow = 'hidden';
-        }
-        function closeDrawer() {
-            drawer.classList.remove('open');
-            backdrop.classList.remove('open');
-            drawer.setAttribute('aria-hidden', 'true');
-            btn.setAttribute('aria-expanded', 'false');
-            btn.focus({ preventScroll: true });
-            document.body.style.overflow = '';
-        }
-        btn.addEventListener('click', () => {
-            drawer.classList.contains('open') ? closeDrawer() : openDrawer();
-        });
-        backdrop.addEventListener('click', closeDrawer);
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
-        });
-        drawer.addEventListener('click', (e) => {
-            if (e.target.closest('a[href]')) closeDrawer();
-        });
-    } else {
-        console.error('Drawer elements not found. Check your HTML IDs.');
-    }
 });
