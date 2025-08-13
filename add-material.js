@@ -1,4 +1,4 @@
-import { db, userId, appId, initializeFirebase, collection, addDoc, Timestamp } from "./firebase-config.js";
+import { db, userId, appId, initializeFirebase, collection, addDoc, Timestamp, query, where, getDocs } from "./firebase-config.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -190,70 +190,83 @@ materialForm.addEventListener('submit', async (e) => {
     try {
         await initializeFirebase();
         
-        const materialId = materialIdInput.value;
-        const isEditMode = !!materialId;
+        // form.material.value को trim() का उपयोग करके space हटा दें ताकि सटीक match मिल सके
+        const materialName = form.material.value.trim();
+        const existingMaterialId = materialIdInput.value;
 
-        const material = form.material.value;
-        const dealer = form.dealer.value || null;
-        const gstNumber = form.gstNumber.value || null;
-        const description = form.description.value || null;
-        const quantity = parseFloat(form.quantity.value);
-        const quantityUnit = form.quantityUnit.value;
-        const stock = parseFloat(form.stock.value);
-        const pricePerUnit = parseFloat(form.pricePerUnit.value);
-        const updatedCostPerUnit = parseFloat(form.updatedCostPerUnit.value);
-        const price = parseFloat(document.getElementById('price').value);
-        const gst = parseFloat(form.gst.value);
-        const hamali = parseFloat(form.hamali.value);
-        const transportation = parseFloat(form.transportation.value);
-        
-        if (!db || !userId) {
-            throw new Error("User is not authenticated. Please log in and try again.");
-        }
+        // Firestore में collection का path सेट करें
+        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
+        const materialsCollection = collection(db, collectionPath);
+
+        let dataToSave = {
+            material: materialName,
+            dealer: form.dealer.value || null,
+            gstNumber: form.gstNumber.value || null,
+            description: form.description.value || null,
+            quantity: parseFloat(form.quantity.value),
+            quantityUnit: form.quantityUnit.value,
+            stock: parseFloat(form.stock.value),
+            pricePerUnit: parseFloat(form.pricePerUnit.value),
+            updatedCostPerUnit: parseFloat(form.updatedCostPerUnit.value),
+            price: parseFloat(document.getElementById('price').value),
+            gst: parseFloat(form.gst.value),
+            hamali: parseFloat(form.hamali.value),
+            transportation: parseFloat(form.transportation.value),
+        };
 
         let billPhotoUrl = currentBillPhotoUrl;
         const file = fileInput.files[0];
         if (file) {
             const storage = getStorage();
-            // Template literal ko sahi karein
             const storageRef = ref(storage, `user-uploads/${userId}/bills/${Timestamp.now().toMillis()}_${file.name}`);
             const uploadTask = await uploadBytes(storageRef, file);
             billPhotoUrl = await getDownloadURL(uploadTask.ref);
             showMessage('Bill photo uploaded successfully!', 'info');
+            dataToSave.billPhotoUrl = billPhotoUrl;
         }
-        
-        const dataToSave = {
-            material,
-            dealer,
-            gstNumber,
-            description,
-            quantity,
-            quantityUnit,
-            stock,
-            pricePerUnit,
-            updatedCostPerUnit,
-            price,
-            gst,
-            hamali,
-            transportation,
-            billPhotoUrl,
-        };
 
-        // Template literal ko sahi karein
-        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
-        if (isEditMode) {
-            dataToSave.updatedAt = Timestamp.now();
-            await updateDoc(doc(db, collectionPath, materialId), dataToSave);
-            showMessage('Material updated successfully!', 'success');
-            // Go back to all materials page after update
-            window.location.href = 'all-materials.html';
+        // --- NEW LOGIC: Check for existing material by name ---
+        // केवल तभी check करें जब यह edit mode में न हो
+        if (!existingMaterialId) {
+            const q = query(materialsCollection, where('material', '==', materialName));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                // Material पहले से मौजूद है, इसलिए इसे अपडेट करें
+                const existingDoc = querySnapshot.docs[0];
+                const oldData = existingDoc.data();
+                
+                // पुरानी मात्रा और स्टॉक में नई मात्रा जोड़ें
+                const newTotalQuantity = oldData.quantity + dataToSave.quantity;
+                const newTotalStock = oldData.stock + dataToSave.stock;
+
+                // डेटा को अपडेट करें
+                dataToSave.quantity = newTotalQuantity;
+                dataToSave.stock = newTotalStock;
+                dataToSave.updatedAt = Timestamp.now();
+                dataToSave.timestamp = oldData.timestamp; // Original timestamp ko na badlein
+
+                await updateDoc(doc(db, collectionPath, existingDoc.id), dataToSave);
+                showMessage('Material updated successfully!', 'success');
+                form.reset();
+                priceInput.value = '';
+                handleFileSelect();
+            } else {
+                // Material मौजूद नहीं है, इसलिए एक नया दस्तावेज़ जोड़ें
+                dataToSave.timestamp = Timestamp.now();
+                await addDoc(materialsCollection, dataToSave);
+                showMessage('New material added successfully!', 'success');
+                form.reset();
+                priceInput.value = '';
+                handleFileSelect();
+            }
         } else {
-            dataToSave.timestamp = Timestamp.now();
-            await addDoc(collection(db, collectionPath), dataToSave);
-            showMessage('Material added successfully!', 'success');
-            form.reset();
-            priceInput.value = '';
-            handleFileSelect();
+            // यह edit mode है, इसलिए मौजूदा दस्तावेज़ को अपडेट करें
+            dataToSave.updatedAt = Timestamp.now();
+            await updateDoc(doc(db, collectionPath, existingMaterialId), dataToSave);
+            showMessage('Material updated successfully!', 'success');
+            // Update के बाद सभी materials वाले पेज पर वापस जाएं
+            window.location.href = 'all-materials.html';
         }
 
     } catch (error) {
@@ -276,7 +289,7 @@ window.addEventListener('load', async () => {
     try {
         await initializeFirebase();
         
-        // URL se materialId ko check karein
+        // URL से materialId को check करें
         const urlParams = new URLSearchParams(window.location.search);
         const editId = urlParams.get('editId');
         
