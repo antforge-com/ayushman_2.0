@@ -1,6 +1,7 @@
 // product-price.js
 // Import necessary Firebase modules from the shared config file
 import { db, auth, appId, initializeFirebase, collection, getDocs, addDoc, Timestamp } from "./firebase-config.js";
+import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // Access DOM elements
@@ -147,7 +148,7 @@ function onRowChange(e) {
             // So we don't set row.quantity = mat.quantity here.
             let quantityInGrams = mat.quantityUnit === 'kg' ? mat.quantity * 1000 : mat.quantity;
             let totalQuantity = mat.quantity;
-            if (row.unit === 'gram' && totalQuantity) {
+            if (mat.quantityUnit === 'gram' && totalQuantity) {
                 totalQuantity = totalQuantity / 1000;
             }
 
@@ -240,6 +241,7 @@ costPerBottleInput.oninput = updateTotals;
 /**
  * Saves the product price calculation to Firestore.
  * @param {object} productData - The object containing all product pricing information.
+ * @returns {Promise<void>}
  */
 async function saveProductPrice(productData) {
     try {
@@ -250,6 +252,10 @@ async function saveProductPrice(productData) {
         
         const collectionPath = `/artifacts/${appId}/users/${auth.currentUser.uid}/products`;
         await addDoc(collection(db, collectionPath), productData);
+
+        // Deduct stock after successful calculation and saving
+        await deductStock();
+
         showMessage('Product price saved successfully!', 'success');
         // No redirect, just show the message
     } catch (error) {
@@ -262,6 +268,55 @@ async function saveProductPrice(productData) {
     }
 }
 
+/**
+ * Deducts the used material quantity from the stock in Firestore.
+ * @returns {Promise<void>}
+ */
+async function deductStock() {
+    try {
+        if (!auth.currentUser) {
+            throw new Error("User is not authenticated.");
+        }
+
+        const updates = materialRows.map(async (row) => {
+            const collectionPath = `/artifacts/${appId}/users/${auth.currentUser.uid}/materials`;
+            const docRef = doc(db, collectionPath, row.materialId);
+
+            // Get the current stock from Firestore
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const currentData = docSnap.data();
+                
+                // Get the current stock from DB and the quantity to deduct from UI
+                let currentStock = parseFloat(currentData.stock) || 0;
+                let deduction = parseFloat(row.quantity) || 0;
+                
+                // BUG FIX: Deduction amount को stock की यूनिट के अनुसार बदलें
+                if (row.unit === 'gram' && currentData.quantityUnit === 'kg') {
+                    // अगर DB में स्टॉक kg में है और UI में ग्राम में है, तो कटौती को kg में बदलें
+                    deduction = deduction / 1000;
+                } else if (row.unit === 'kg' && currentData.quantityUnit === 'gram') {
+                    // अगर DB में स्टॉक ग्राम में है और UI में kg में है, तो कटौती को ग्राम में बदलें
+                    deduction = deduction * 1000;
+                }
+
+                // नए स्टॉक की गणना करें, सुनिश्चित करें कि यह 0 से कम न हो
+                const newStock = Math.max(0, currentStock - deduction);
+                
+                // अपडेटेड स्टॉक को Firestore में वापस सेव करें
+                await updateDoc(docRef, {
+                    stock: newStock
+                });
+            }
+        });
+        
+        await Promise.all(updates);
+        console.log('Stock deducted successfully!');
+    } catch (error) {
+        console.error("Error deducting stock:", error);
+        showMessage('Failed to deduct stock. Please check the logs.', 'error');
+    }
+}
 
 // Calculate price when the button is clicked
 calcBtn.onclick = async () => {
@@ -286,6 +341,26 @@ calcBtn.onclick = async () => {
         loadingIndicator.classList.add('hidden');
         return;
     }
+    
+    // Check for sufficient stock before proceeding
+    const stockErrors = await checkStock();
+
+    if (stockErrors.length > 0) {
+        pricingResultsDiv.style.display = 'block';
+        pricingResultsDiv.innerHTML = `
+            <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;">
+                <h4 style="font-weight:600;margin-bottom:0.5rem;">Stock Check Failed:</h4>
+                <ul style="list-style-type:disc;padding-left:1.5rem;">
+                    ${stockErrors.map(err => `<li>${err}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+        calcBtn.disabled = false;
+        buttonText.classList.remove('hidden');
+        loadingIndicator.classList.add('hidden');
+        return;
+    }
+
 
     const bottleCost = numBottles * costPerBottle;
     const baseCost = totalMaterial + bottleCost;

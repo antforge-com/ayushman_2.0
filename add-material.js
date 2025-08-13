@@ -1,12 +1,13 @@
 import { db, userId, appId, initializeFirebase, collection, addDoc, Timestamp } from "./firebase-config.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // DOM elements ko access karein
 const quantityInput = document.getElementById('quantity');
 const quantityUnitSelect = document.getElementById('quantityUnit');
 let lastUnit = quantityUnitSelect.value;
 const pricePerUnitInput = document.getElementById('pricePerUnit');
+const updatedCostPerUnitInput = document.getElementById('updatedCostPerUnit');
 const priceInput = document.getElementById('price');
 const priceLabel = document.getElementById('priceLabel');
 const fileInput = document.getElementById('billPhoto');
@@ -141,8 +142,10 @@ async function loadMaterialForEdit(materialId) {
             document.getElementById('gstNumber').value = data.gstNumber || '';
             document.getElementById('description').value = data.description || '';
             document.getElementById('quantity').value = data.quantity || '';
+            document.getElementById('stock').value = data.stock || '';
             document.getElementById('quantityUnit').value = data.quantityUnit || 'kg';
             document.getElementById('pricePerUnit').value = data.pricePerUnit || '';
+            document.getElementById('updatedCostPerUnit').value = data.updatedCostPerUnit || '';
             document.getElementById('price').value = data.price || '';
             document.getElementById('gst').value = data.gst || 0;
             document.getElementById('hamali').value = data.hamali || 0;
@@ -196,7 +199,9 @@ materialForm.addEventListener('submit', async (e) => {
         const description = form.description.value || null;
         const quantity = parseFloat(form.quantity.value);
         const quantityUnit = form.quantityUnit.value;
+        const stock = parseFloat(form.stock.value);
         const pricePerUnit = parseFloat(form.pricePerUnit.value);
+        const updatedCostPerUnit = parseFloat(form.updatedCostPerUnit.value);
         const price = parseFloat(document.getElementById('price').value);
         const gst = parseFloat(form.gst.value);
         const hamali = parseFloat(form.hamali.value);
@@ -224,7 +229,9 @@ materialForm.addEventListener('submit', async (e) => {
             description,
             quantity,
             quantityUnit,
+            stock,
             pricePerUnit,
+            updatedCostPerUnit,
             price,
             gst,
             hamali,

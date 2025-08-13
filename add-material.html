@@ -177,7 +177,7 @@
             background: #f0f0f0;
             border-left-color: var(--primary);
         }
-
+        
         .logout-link {
             margin-top: auto;
             display: flex;
@@ -568,9 +568,19 @@
                     </select>
                 </div>
             </div>
+            <!-- Added Stock field -->
+            <div class="form-group">
+                <label for="stock">Stock</label>
+                <input name="stock" id="stock" type="number" min="0" required placeholder="Enter total stock">
+            </div>
             <div class="form-group">
                 <label for="pricePerUnit" id="priceLabel">Price per kg</label>
                 <input name="pricePerUnit" id="pricePerUnit" type="number" min="0" required placeholder="Price per kg">
+            </div>
+             <!-- Added Updated Cost Per Unit field -->
+            <div class="form-group">
+                <label for="updatedCostPerUnit">Updated Cost Per Unit</label>
+                <input name="updatedCostPerUnit" id="updatedCostPerUnit" type="number" min="0" required placeholder="Enter updated cost per unit">
             </div>
             <div class="form-group">
                 <label for="price">Calculated Price</label>
