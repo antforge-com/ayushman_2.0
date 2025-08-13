@@ -140,16 +140,21 @@ function onRowChange(e) {
             const grandTotal =
                 (parseFloat(mat.price) || 0) +
                 (parseFloat(mat.gst) || 0) +
-                (parseFloat(mat.hamali) || 0); // Assuming 'transportation' might not always exist
+                (parseFloat(mat.hamali) || 0) +
+                (parseFloat(mat.transportation) || 0);
             row.unit = mat.quantityUnit;
             // The quantity is now derived from the form input, not the stored material quantity.
             // So we don't set row.quantity = mat.quantity here.
             let quantityInGrams = mat.quantityUnit === 'kg' ? mat.quantity * 1000 : mat.quantity;
+            let totalQuantity = mat.quantity;
+            if (row.unit === 'gram' && totalQuantity) {
+                totalQuantity = totalQuantity / 1000;
+            }
 
             if (row.unit === 'kg') {
-                row.costPerUnit = grandTotal / (quantityInGrams / 1000);
+                row.costPerUnit = grandTotal / totalQuantity;
             } else if (row.unit === 'gram') {
-                row.costPerUnit = grandTotal / quantityInGrams;
+                row.costPerUnit = grandTotal / (totalQuantity * 1000);
             }
         } else {
             row.quantity = 0;
@@ -175,13 +180,16 @@ function onRowChange(e) {
         const newUnit = e.target.value;
 
         if (mat) {
-            const totalCalculatedPrice = (parseFloat(mat.price) || 0) + (parseFloat(mat.gst) || 0) + (parseFloat(mat.hamali) || 0);
+            const totalCalculatedPrice = (parseFloat(mat.price) || 0) + (parseFloat(mat.gst) || 0) + (parseFloat(mat.hamali) || 0) + (parseFloat(mat.transportation) || 0);
             let quantityInGrams = mat.quantityUnit === 'kg' ? mat.quantity * 1000 : mat.quantity;
-
+            let totalQuantity = mat.quantity;
+            if (mat.quantityUnit === 'gram' && totalQuantity) {
+                totalQuantity = totalQuantity / 1000;
+            }
             if (newUnit === 'kg') {
-                row.costPerUnit = totalCalculatedPrice / (quantityInGrams / 1000);
+                row.costPerUnit = totalCalculatedPrice / totalQuantity;
             } else if (newUnit === 'gram') {
-                row.costPerUnit = totalCalculatedPrice / quantityInGrams;
+                row.costPerUnit = totalCalculatedPrice / (totalQuantity * 1000);
             }
             row.unit = newUnit;
         } else {

@@ -15,12 +15,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Product App">
-
-    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
         :root {
-            /* Changed background variable to pure white */
             --bg: #ffffff;
             --surface: #ffffff;
             --primary: #234123;
@@ -35,7 +41,9 @@
 
         /* Base */
         * {
-            box-sizing: border-box
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
         }
 
         html,
@@ -44,7 +52,6 @@
             padding: 0;
             background: var(--bg);
             color: var(--text);
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
         }
 
         a {
@@ -62,12 +69,10 @@
             position: fixed;
             inset: 0 0 auto 0;
             height: 64px;
-            /* Changed topbar background to white */
             background: #ffffff;
             border-bottom: 1px solid #e0e0e0;
             display: flex;
             align-items: center;
-            /* Changed this to push items to the ends */
             justify-content: space-between;
             gap: 12px;
             padding: 0 14px;
@@ -112,13 +117,6 @@
             top: 7px;
         }
 
-        .brand-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        /* Added a new class for the left-aligned circular logo */
         .left-logo-wrap {
             display: flex;
             align-items: center;
@@ -126,31 +124,22 @@
         }
 
         .left-logo-wrap img {
-            width: 40px; /* Adjust size as needed */
+            width: 40px;
             height: 40px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid var(--border); /* Optional border for style */
+            border: 2px solid var(--border);
         }
 
-        /* Adjusted logo size in top bar to be responsive */
-        .brand-wrap img {
+        .topbar-logo {
             height: 84px;
-            /* Increased height as requested */
             width: auto;
         }
 
         @media (max-width: 640px) {
-            .brand-wrap img {
+            .topbar-logo {
                 height: 40px;
-                /* Slightly smaller height for mobile screens to fit better */
             }
-        }
-        
-        .brand-title {
-            font-weight: 700;
-            letter-spacing: .2px;
-            color: var(--primary)
         }
 
         /* Drawer */
@@ -160,7 +149,6 @@
             left: 0;
             bottom: 0;
             width: 260px;
-            /* Changed drawer background to white */
             background: #ffffff;
             border-right: 1px solid #e0e0e0;
             transform: translateX(-100%);
@@ -181,10 +169,8 @@
             padding: 0 16px 12px 16px;
         }
 
-        /* Adjusted logo size in drawer */
         .drawer-logo img {
             max-height: 80px;
-            /* Increased max height */
             height: auto;
             margin: 0 auto 8px;
         }
@@ -198,23 +184,20 @@
         }
 
         .drawer-link:hover {
-            /* Adjusted hover background for a white page */
             background: #f0f0f0;
         }
 
         .drawer-link.active {
-            /* Adjusted active background for a white page */
             background: #f0f0f0;
             border-left-color: var(--primary);
         }
-
-        /* New styles for the logout link */
+        
         .logout-link {
-            margin-top: auto; /* Pushes the link to the bottom */
+            margin-top: auto;
             display: flex;
             align-items: center;
             gap: 12px;
-            color: #ef4444; /* Red color for logout */
+            color: #ef4444;
             font-weight: 600;
             padding: 12px 18px;
             border-left: 4px solid transparent;
@@ -222,7 +205,7 @@
         }
         
         .logout-link:hover {
-            background: #fef2f2; /* Light red background on hover */
+            background: #fef2f2;
             border-left-color: #ef4444;
         }
 
@@ -250,12 +233,10 @@
         /* Main layout */
         .main {
             padding: 84px 24px 32px;
-            /* account for topbar */
             max-width: 1200px;
             margin: 0 auto;
         }
         
-        /* A new container to group and align the main sections */
         .main-content-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -266,7 +247,6 @@
             position: relative;
             border-radius: var(--radius);
             overflow: hidden;
-            /* Adjusted hero gradient to use a white base */
             background: radial-gradient(1200px 600px at 10% -10%, #9be7b0 0%, rgba(155, 231, 176, 0) 55%),
                 radial-gradient(1000px 500px at 90% -20%, #cfe9d6 0%, rgba(207, 233, 214, 0) 55%),
                 linear-gradient(160deg, #ffffff 0%, #f7fbf7 100%);
@@ -293,9 +273,6 @@
             font-size: clamp(.95rem, 1.6vw, 1.05rem);
         }
         
-        /* Removed the hero-cta section as requested */
-
-        /* Updated styles for the main buttons */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -303,25 +280,19 @@
             gap: 8px;
             padding: .72rem 1rem;
             border-radius: 10px;
-            border: 1px solid #d1d5db;
-            /* Lighter border color */
+            border: 1px solid #d1d5dc;
             background: #f8f8f8;
-            /* Light gray background */
             color: #111;
             font-weight: 600;
             cursor: pointer;
             transition: transform .1s ease, box-shadow .2s ease, background .2s ease;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            /* Subtle initial shadow */
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            /* More pronounced lift on hover */
             background: #f0f0f0;
-            /* Darker background on hover */
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-            /* Stronger shadow on hover */
         }
 
         .btn-primary {
@@ -329,7 +300,6 @@
             border-color: var(--primary);
             color: #fff;
             box-shadow: 0 4px 12px rgba(35, 65, 35, 0.2);
-            /* Added shadow for primary button */
         }
 
         .btn-primary:hover {
@@ -337,16 +307,13 @@
             border-color: var(--primary-600);
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(35, 65, 35, 0.25);
-            /* More pronounced shadow on hover */
         }
         
-        /* New class for the 'Add Drug' button in the hero section */
         .btn-secondary {
             background: var(--primary);
             border-color: var(--primary);
             color: #fff;
             box-shadow: 0 4px 12px rgba(35, 65, 35, 0.2);
-            /* Added shadow for secondary button */
         }
 
         .btn-secondary:hover {
@@ -361,7 +328,6 @@
             height: 100%;
             min-height: 180px;
             border-radius: 16px;
-            /* Adjusted hero art gradient to use a white base */
             background:
                 radial-gradient(200px 160px at 80% 20%, rgba(124, 197, 143, .35), transparent 70%),
                 radial-gradient(220px 140px at 20% 80%, rgba(35, 65, 35, .15), transparent 60%),
@@ -390,10 +356,8 @@
             border: 1px solid var(--border);
         }
         
-        /* Adjusted logo size in hero badge to be responsive */
         .hero-badge img {
             width: 40px;
-            /* Increased width for better visibility on all screens */
             height: auto;
             opacity: .95
         }
@@ -401,14 +365,12 @@
         @media (max-width: 640px) {
             .hero-badge img {
                 width: 32px;
-                /* Smaller width for mobile screens */
             }
         }
 
         /* Quick actions grid */
         .section-title {
-            /* Quick actions field और ऊपर के content के बीच vertical gap manage किया गया है */
-            margin: 40px 2px 24px; /* Increased bottom margin for more space below the heading */
+            margin: 40px 2px 24px;
             font-size: 1.1rem;
             font-weight: 800;
             color: var(--primary);
@@ -483,12 +445,10 @@
             background: linear-gradient(135deg, #b45309, #f59e0b);
         }
 
-        /* Added a new icon class for the Add Drug card */
         .icon-orange {
             background: linear-gradient(135deg, #d97706, #fb923c);
         }
         
-        /* New icon class for All Product Prices */
         .icon-purple {
             background: linear-gradient(135deg, #6d28d9, #8b5cf6);
         }
@@ -504,8 +464,6 @@
             font-size: .95rem;
         }
         
-        /* The actions section is removed for all cards */
-
         .link-btn {
             display: inline-flex;
             align-items: center;
@@ -518,7 +476,6 @@
             color: #111;
         }
         
-        /* New style for card links that are part of the 'card-head' */
         .card-head-link {
             text-decoration: none;
             color: inherit;
@@ -528,7 +485,6 @@
             background: #f2f2f2;
         }
 
-        /* Responsive grid spans */
         @media (max-width: 1024px) {
             .grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -568,37 +524,32 @@
     <!-- Top bar with hamburger + brand -->
     <header class="topbar" role="banner">
         <div class="left-logo-wrap">
-            <img src="assets/owner.jpg" alt="User Logo">
+            <img src="assets/owner.jpg" onerror="this.onerror=null; this.src='https://placehold.co/40x40/e5e7eb/6b7280?text=O'" alt="User Logo">
             <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open navigation" aria-controls="drawerNav"
                 aria-expanded="false">
                 <span class="hamburger" aria-hidden="true"></span>
             </button>
         </div>
-        <div class="brand-wrap">
-            <img src="assets/vasavi-logo.png" alt="Vasavi Ayurveda Logo">
-            <!-- Removed the brand title text -->
-        </div>
+        <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/84x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo" class="topbar-logo">
     </header>
 
     <!-- Drawer navigation -->
     <nav class="drawer" id="drawerNav" aria-hidden="true">
         <div class="drawer-logo">
-            <img src="assets/vasavi-logo.png" alt="Vasavi Ayurveda Logo">
+            <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/80x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo">
         </div>
         <a href="index.html" class="drawer-link active">Home</a>
         <a href="add-material.html" class="drawer-link">Add Material</a>
         <a href="product-price.html" class="drawer-link">Product Price</a>
-        <!-- Added a new link for the drug entry page -->
         <a href="drug-entry.html" class="drawer-link">Add Drug</a>
         <a href="all-materials.html" class="drawer-link">All Purchases</a>
         <a href="all-product-prices.html" class="drawer-link">All Product Prices</a>
-        <!-- New logout link at the bottom of the drawer -->
         <a href="#" id="logoutLink" class="logout-link">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M16 9V17H12L12 19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7H12V9H16Z"
                     fill="currentColor" />
                 <path
-                    d="M9 14V12H2V14H9ZM9 12V14L12 11L9 8V10H2V12H9ZM9 12H11.5L9 9.5V12ZM9 12L11.5 14.5V12L9 9.5ZM9 12L11.5 12L9 9.5V12ZM16 7H12V9H16V17H12V19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7Z"
+                    d="M9 14V12H2V14H9ZM9 12V14L12 11L9 8V10H2V12H9ZM9 12H11.5L9 9.5V12ZM9 12L11.5 14.5V12L9 9.5V12ZM16 7H12V9H16V17H12V19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7Z"
                     fill="currentColor" />
             </svg>
             Logout
@@ -617,12 +568,10 @@
                 <p>Fast data entry, clean overviews, and accurate pricing — designed to work beautifully on mobile and
                     desktop.
                 </p>
-                
             </div>
             <div class="hero-art">
                 <div class="hero-badge">
                     <img src="assets/vasavi-logo.png" alt="Logo">
-                    <!-- Removed the brand text from the hero badge -->
                 </div>
                 <!-- Simple decorative SVG -->
                 <svg width="220" height="160" viewBox="0 0 220 160" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -674,7 +623,6 @@
             <a href="drug-entry.html" class="card-link">
                 <article class="card">
                     <div class="card-head">
-                        <!-- Changed the icon class to a new color -->
                         <div class="card-icon icon-orange">💊</div>
                         <div>
                             <h3>Add Drug</h3>
@@ -697,7 +645,7 @@
                 </article>
             </a>
             
-            <!-- Added a new card for All Product Prices -->
+            <!-- All Product Prices -->
             <a href="all-product-prices.html" class="card-link">
                 <article class="card">
                     <div class="card-head">
@@ -739,7 +687,7 @@
             const drawer = document.getElementById('drawerNav');
             const backdrop = document.getElementById('backdrop');
 
-            if (btn && drawer && backdrop) { // Ensure elements exist before adding listeners
+            if (btn && drawer && backdrop) {
                 function openDrawer() {
                     drawer.classList.add('open');
                     backdrop.classList.add('open');
@@ -780,7 +728,6 @@
                             window.location.href = 'login.html';
                         } catch (error) {
                             console.error("Error signing out: ", error);
-                            // You could display a user-friendly message here in a modal
                         }
                     });
                 }

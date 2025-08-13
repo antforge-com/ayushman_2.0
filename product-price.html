@@ -170,13 +170,12 @@
         border-left-color: var(--primary);
       }
 
-      /* New styles for the logout link */
       .logout-link {
-          margin-top: auto; /* Pushes the link to the bottom */
+          margin-top: auto;
           display: flex;
           align-items: center;
           gap: 12px;
-          color: #ef4444; /* Red color for logout */
+          color: #ef4444;
           font-weight: 600;
           padding: 12px 18px;
           border-left: 4px solid transparent;
@@ -184,7 +183,7 @@
       }
       
       .logout-link:hover {
-          background: #fef2f2; /* Light red background on hover */
+          background: #fef2f2;
           border-left-color: #ef4444;
       }
 
@@ -253,12 +252,12 @@
   
       .ingredients-table {
           overflow-x: auto;
-          -webkit-overflow-scrolling: touch; /* for smooth scrolling on iOS */
+          -webkit-overflow-scrolling: touch;
       }
   
       .ingredients-table table {
         width: 100%;
-        min-width: 600px; /* Increased min-width for better display on small screens */
+        min-width: 600px;
         border-collapse: collapse;
         font-size: 1em;
         background: var(--surface);
@@ -411,6 +410,35 @@
         box-shadow: 0 1px 4px 0 rgba(38, 58, 74, 0.04);
         border: 1.5px solid var(--border);
       }
+
+      /* View All Product Prices Button Styling (Matched with Add Material's button) */
+      .btn-view-prices {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 1.5rem;
+          padding: 0.6rem 1.4rem;
+          border-radius: 8px;
+          border: 1px solid var(--accent);
+          background: linear-gradient(135deg, #e6f7e7, #d1e8d2);
+          color: var(--primary);
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
+          box-shadow: 0 4px 15px rgba(124, 197, 143, 0.25);
+      }
+
+      .btn-view-prices:hover {
+          background: linear-gradient(135deg, #d1e8d2, #b2d7b5);
+          transform: translateY(-2px) scale(1.01);
+          box-shadow: 0 8px 20px rgba(124, 197, 143, 0.35);
+      }
+
+      .btn-view-prices i {
+          color: var(--primary);
+          transition: transform 0.2s ease;
+      }
   
       /* Media query for tablets and smaller desktops */
       @media (max-width: 1024px) {
@@ -537,6 +565,16 @@
         <a href="drug-entry.html" class="drawer-link">Add Drug</a>
         <a href="all-materials.html" class="drawer-link">All Purchases</a>
         <a href="all-product-prices.html" class="drawer-link">All Product Prices</a>
+        <a href="#" id="logoutLink" class="logout-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 9V17H12L12 19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7H12V9H16Z"
+                    fill="currentColor" />
+                <path
+                    d="M9 14V12H2V14H9ZM9 12V14L12 11L9 8V10H2V12H9ZM9 12H11.5L9 9.5V12ZM9 12L11.5 14.5V12L9 9.5V12ZM16 7H12V9H16V17H12V19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7Z"
+                    fill="currentColor" />
+            </svg>
+            Logout
+        </a>
     </nav>
 
     <!-- Backdrop -->
@@ -547,7 +585,7 @@
         <h2 class="main-heading">Product Price Calculator</h2>
         <div id="statusMessage" class="hidden message-box"></div>
 
-        <!-- View All Prices Button -->
+        <!-- View All Prices Button (Redesigned) -->
         <a href="all-product-prices.html" class="btn-view-prices">
             <i class="fa-solid fa-eye"></i> View All Product Prices
         </a>
