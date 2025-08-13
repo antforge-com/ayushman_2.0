@@ -15,10 +15,12 @@ const filesToCopy = [
     'add-material.html',
     'product-price.html',
     'all-materials.html',
+    'all-product-prices.html', // New file added
     'firebase-config.js',
     'add-material.js',
     'product-price.js',
     'all-materials.js',
+    'all-product-prices.js', // New file added
     'styles.css'
 ];
 

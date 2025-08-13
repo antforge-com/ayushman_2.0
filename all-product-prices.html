@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="View all materials and their details.">
-    <title>All Purchases - Product App</title>
+    <meta name="description" content="View all calculated product prices.">
+    <title>All Product Prices - Product App</title>
 
     <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -176,30 +176,6 @@
             border-left-color: var(--primary);
         }
 
-        /* New styles for the logout link */
-        .logout-link {
-            margin-top: auto; /* Pushes the link to the bottom */
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: #ef4444; /* Red color for logout */
-            font-weight: 600;
-            padding: 12px 18px;
-            border-left: 4px solid transparent;
-            transition: background .2s ease, border-left-color .2s ease;
-        }
-        
-        .logout-link:hover {
-            background: #fef2f2; /* Light red background on hover */
-            border-left-color: #ef4444;
-        }
-
-        .logout-link svg {
-            width: 24px;
-            height: 24px;
-            fill: #ef4444;
-        }
-
         .backdrop {
             position: fixed;
             inset: 0;
@@ -281,8 +257,118 @@
             background: #eff6ff;
             border-left: 4px solid #1e40af;
         }
+        
+        .hidden {
+            display: none;
+        }
 
-        /* Search modal styling */
+        /* New styles for expandable list */
+        .price-card {
+            background: #fefefe;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .price-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            cursor: pointer;
+            background: #f9f9f9;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .price-header.expanded {
+            background: #f0fff0;
+        }
+        
+        .price-header:hover {
+            background: #f0f0f0;
+        }
+
+        .price-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .price-header .toggle-icon {
+            transform: rotate(0deg);
+            transition: transform 0.2s ease;
+        }
+
+        .price-header.expanded .toggle-icon {
+            transform: rotate(180deg);
+        }
+        
+        .price-body {
+            padding: 1.25rem;
+            display: none;
+        }
+
+        .price-body.expanded {
+            display: block;
+        }
+        
+        .price-details p {
+            margin: 0;
+            padding: 0.25rem 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        
+        .price-details p strong {
+            font-weight: 600;
+        }
+
+        .price-details h4 {
+            margin: 1rem 0 0.5rem;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        
+        .price-details ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .price-details li {
+            padding: 0.25rem 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .action-btn:hover {
+            color: var(--text);
+        }
+        .delete-btn:hover {
+            color: #dc2626;
+        }
+
+
+        /* Delete Confirmation Modal */
         .modal {
             position: fixed;
             top: 0;
@@ -329,215 +415,7 @@
             cursor: pointer;
             color: var(--muted);
         }
-
-        .search-options {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
         
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-
-        .search-btn {
-            width: 100%;
-            padding: 0.75rem;
-            font-size: 1rem;
-            border-radius: 8px;
-            border: none;
-            background: var(--primary);
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .search-btn:hover {
-            background: var(--primary-600);
-        }
-
-        .search-option-btn {
-            padding: 0.75rem;
-            border: 1px solid var(--accent);
-            background: #e6f7e7;
-            color: var(--primary);
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .search-option-btn:hover {
-            background-color: #d1e8d2;
-        }
-        
-        .hidden {
-            display: none;
-        }
-
-        /* New styles for expandable list */
-        .purchase-card {
-            background: #fefefe;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            margin-bottom: 1rem;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .purchase-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.25rem;
-            cursor: pointer;
-            background: #f9f9f9;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .purchase-header.expanded {
-            background: #f0fff0;
-        }
-        
-        .purchase-header:hover {
-            background: #f0f0f0;
-        }
-
-        .purchase-header h3 {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .purchase-header .toggle-icon {
-            transform: rotate(0deg);
-            transition: transform 0.2s ease;
-        }
-
-        .purchase-header.expanded .toggle-icon {
-            transform: rotate(180deg);
-        }
-        
-        .purchase-body {
-            padding: 1.25rem;
-            display: none;
-        }
-
-        .purchase-body.expanded {
-            display: block;
-        }
-        
-        .purchase-details p {
-            margin: 0;
-            padding: 0.25rem 0;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .purchase-details p strong {
-            font-weight: 600;
-        }
-        
-        .low-quantity-badge {
-            background: #fefcbf;
-            color: #8c760a;
-            font-weight: 600;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            display: inline-block;
-            font-size: 0.85rem;
-        }
-        
-        .card-actions {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            color: var(--muted);
-            cursor: pointer;
-            font-size: 1.1rem;
-        }
-
-        .action-btn:hover {
-            color: var(--text);
-        }
-        
-        .delete-btn:hover {
-            color: #dc2626;
-        }
-
-        .edit-btn:hover {
-            color: #2563eb;
-        }
-
-        /* Edit Modal styling */
-        .edit-modal-content {
-            width: 90%;
-            max-width: 500px;
-            background: var(--surface);
-            padding: 2rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            position: relative;
-        }
-
-        .edit-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .edit-modal-header h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        
-        .form-group input, .form-group textarea, .form-group select {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: #fafafa;
-        }
-
-        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(35, 65, 35, 0.2);
-        }
-
-        .edit-modal-footer {
-            margin-top: 1.5rem;
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-        }
-
         .modal-btn {
             padding: 0.75rem 1.5rem;
             border-radius: 8px;
@@ -547,13 +425,13 @@
         }
         
         .modal-btn-primary {
-            background: var(--primary);
+            background: #dc2626;
             color: #fff;
-            border: 1px solid var(--primary);
+            border: 1px solid #dc2626;
         }
 
         .modal-btn-primary:hover {
-            background: var(--primary-600);
+            background: #b91c1c;
         }
 
         .modal-btn-secondary {
@@ -565,22 +443,14 @@
         .modal-btn-secondary:hover {
             background: #e5e7eb;
         }
+
+        .edit-modal-footer {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
         
-        .loading-spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #fff;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-
         /* Responsive overrides */
         @media (max-width: 640px) {
             .topbar-logo {
@@ -623,8 +493,8 @@
         <a href="add-material.html" class="drawer-link">Add Material</a>
         <a href="product-price.html" class="drawer-link">Product Price</a>
         <a href="drug-entry.html" class="drawer-link">Add Drug</a>
-        <a href="all-materials.html" class="drawer-link active">All Purchases</a>
-        <a href="all-product-prices.html" class="drawer-link">All Product Prices</a>
+        <a href="all-materials.html" class="drawer-link">All Purchases</a>
+        <a href="all-product-prices.html" class="drawer-link active">All Product Prices</a>
     </nav>
 
     <!-- Backdrop -->
@@ -632,110 +502,18 @@
 
     <!-- Main Content -->
     <main class="main">
-        <h2 class="main-heading">All Purchases</h2>
+        <h2 class="main-heading">All Product Prices</h2>
         <div class="control-buttons">
-            <a href="add-material.html" class="btn">
+            <a href="product-price.html" class="btn">
                 <i class="fa-solid fa-arrow-left"></i>
-                Back to Add Material
+                Calculate New Price
             </a>
-            <button id="searchBtn" class="btn">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                Search
-            </button>
+            <!-- Search functionality can be added here later -->
         </div>
 
-        <!-- Message container for success/error -->
+        <!-- Message container for status -->
         <div id="statusMessage" class="hidden message-box"></div>
-
-        <!-- Search Modal -->
-        <div id="searchModal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Search Purchases</h3>
-                    <button id="closeModalBtn" class="close-btn">&times;</button>
-                </div>
-                <div id="searchOptions" class="search-options">
-                    <button class="search-option-btn" id="searchByDealerBtn">Search by Dealer</button>
-                    <button class="search-option-btn" id="searchByDateBtn">Search by Date</button>
-                </div>
-
-                <form id="dealerSearchForm" class="hidden mt-4">
-                    <div class="form-group">
-                        <label for="dealerName">Dealer Name</label>
-                        <input type="text" id="dealerName" placeholder="Enter dealer name">
-                    </div>
-                    <button type="submit" class="search-btn">Search</button>
-                </form>
-
-                <form id="dateSearchForm" class="hidden mt-4">
-                    <div class="form-group">
-                        <label for="purchaseDate">Purchase Date</label>
-                        <input type="date" id="purchaseDate">
-                    </div>
-                    <button type="submit" class="search-btn">Search</button>
-                </form>
-            </div>
-        </div>
         
-        <!-- Edit Modal -->
-        <div id="editModal" class="modal hidden">
-            <div class="edit-modal-content">
-                <div class="edit-modal-header">
-                    <h3>Edit Purchase</h3>
-                    <button id="closeEditModalBtn" class="close-btn">&times;</button>
-                </div>
-                <form id="editForm">
-                    <input type="hidden" id="editMaterialId">
-                    <div class="form-group">
-                        <label for="editMaterial">Material Name</label>
-                        <input name="material" id="editMaterial" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editDealer">Dealer Name</label>
-                        <input name="dealer" id="editDealer">
-                    </div>
-                    <div class="form-group">
-                        <label for="editGstNumber">GST Number</label>
-                        <input name="gstNumber" id="editGstNumber">
-                    </div>
-                    <div class="form-group">
-                        <label for="editDescription">Description</label>
-                        <textarea name="description" id="editDescription" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="editQuantity">Quantity</label>
-                        <input name="quantity" id="editQuantity" type="number" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editQuantityUnit">Unit</label>
-                        <select name="quantityUnit" id="editQuantityUnit">
-                            <option value="kg">kg</option>
-                            <option value="gram">gram</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="editPrice">Calculated Price</label>
-                        <input name="price" id="editPrice" type="number" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editGst">GST Amount</label>
-                        <input name="gst" id="editGst" type="number" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editHamali">Hamali</label>
-                        <input name="hamali" id="editHamali" type="number" min="0" required>
-                    </div>
-                    <div class="edit-modal-footer">
-                        <button type="button" class="modal-btn modal-btn-secondary" id="cancelEditBtn">Cancel</button>
-                        <button type="submit" class="modal-btn modal-btn-primary" id="saveEditBtn">
-                            <span id="editButtonText">Save Changes</span>
-                            <div id="editLoadingIndicator" class="loading-spinner hidden"></div>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Delete Confirmation Modal -->
         <div id="deleteModal" class="modal hidden">
             <div class="modal-content">
@@ -743,7 +521,7 @@
                     <h3>Confirm Deletion</h3>
                     <button id="closeDeleteModalBtn" class="close-btn">&times;</button>
                 </div>
-                <p>Are you sure you want to delete this purchase? This action cannot be undone.</p>
+                <p>Are you sure you want to delete this product price? This action cannot be undone.</p>
                 <div class="edit-modal-footer">
                     <button type="button" class="modal-btn modal-btn-secondary" id="cancelDeleteBtn">Cancel</button>
                     <button type="button" class="modal-btn modal-btn-primary" id="confirmDeleteBtn">Delete</button>
@@ -751,14 +529,14 @@
             </div>
         </div>
 
-        <!-- Materials list container -->
-        <div id="materialsList">
-            <div class="message-box">Loading purchases...</div>
+        <!-- Product prices list container -->
+        <div id="productPricesList">
+            <div class="message-box">Loading product prices...</div>
         </div>
     </main>
 
     <!-- Firebase and Form Logic -->
-    <script type="module" src="all-materials.js"></script>
+    <script type="module" src="all-product-prices.js"></script>
 </body>
 
 </html>

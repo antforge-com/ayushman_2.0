@@ -1,10 +1,11 @@
 import { db, userId, appId, initializeFirebase, collection, addDoc, Timestamp } from "./firebase-config.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // DOM elements ko access karein
 const quantityInput = document.getElementById('quantity');
 const quantityUnitSelect = document.getElementById('quantityUnit');
+let lastUnit = quantityUnitSelect.value;
 const pricePerUnitInput = document.getElementById('pricePerUnit');
 const priceInput = document.getElementById('price');
 const priceLabel = document.getElementById('priceLabel');
@@ -28,7 +29,8 @@ let currentBillPhotoUrl = null; // Edit mode mein current bill photo URL ko stor
 function showMessage(message, type) {
     const msgDiv = document.getElementById('addMaterialMsg');
     msgDiv.textContent = message;
-    msgDiv.className = `p-4 text-sm font-medium message-${type}`;
+    // Template literal ka sahi upyog kar rahe hain
+    msgDiv.className = `message-box message-${type}`;
     msgDiv.classList.remove('hidden');
     setTimeout(() => {
         msgDiv.classList.add('hidden');
@@ -39,12 +41,25 @@ function showMessage(message, type) {
  * Quantity Unit ke aadhar par price label aur placeholder update karta hai.
  */
 function updatePriceLabel() {
-    if (quantityUnitSelect.value === 'kg') {
+    // Detect unit change
+    const previousUnit = lastUnit;
+    const currentUnit = quantityUnitSelect.value;
+    lastUnit = currentUnit;
+
+    if (currentUnit === 'kg') {
         priceLabel.textContent = "Price per kg";
         pricePerUnitInput.placeholder = "Price per kg";
+        // If previous unit was gram, convert pricePerUnit to per kg
+        if (previousUnit === 'gram' && pricePerUnitInput.value && !isNaN(parseFloat(pricePerUnitInput.value))) {
+            pricePerUnitInput.value = (parseFloat(pricePerUnitInput.value) * 1000).toFixed(2);
+        }
     } else {
         priceLabel.textContent = "Price per gram";
         pricePerUnitInput.placeholder = "Price per gram";
+        // If previous unit was kg, convert pricePerUnit to per gram
+        if (previousUnit === 'kg' && pricePerUnitInput.value && !isNaN(parseFloat(pricePerUnitInput.value))) {
+            pricePerUnitInput.value = (parseFloat(pricePerUnitInput.value) / 1000).toFixed(4);
+        }
     }
     calculateTotalPrice();
 }
@@ -105,11 +120,15 @@ async function loadMaterialForEdit(materialId) {
             throw new Error("User is not authenticated. Cannot load data.");
         }
         
+        // Template literal ko sahi karein
         const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
-        // `getDocs` ka upyog kar rahe hain kyunki `doc` se seedha document fetch karne ke liye humein doc ID ki zaroorat hoti hai.
-        const materialDoc = (await getDocs(query(collection(db, collectionPath), where('__name__', '==', materialId)))).docs[0];
+
+        // Document ID ke aadhar par ek specific document fetch karne ke liye
+        // `getDoc` aur `doc` ka sahi upyog kar rahe hain
+        const materialDocRef = doc(db, collectionPath, materialId);
+        const materialDoc = await getDoc(materialDocRef);
         
-        if (materialDoc && materialDoc.exists()) {
+        if (materialDoc.exists()) {
             const data = materialDoc.data();
             materialIdInput.value = materialId;
             formTitle.textContent = "Edit Material Purchase";
@@ -127,10 +146,11 @@ async function loadMaterialForEdit(materialId) {
             document.getElementById('price').value = data.price || '';
             document.getElementById('gst').value = data.gst || 0;
             document.getElementById('hamali').value = data.hamali || 0;
+            document.getElementById('transportation').value = data.transportation || 0;
             
             currentBillPhotoUrl = data.billPhotoUrl || null;
             handleFileSelect(); // File preview update karein
-            updatePriceLabel(); // Calculate total price
+            updatePriceLabel(); // Calculation ko trigger karein
         } else {
             showMessage("Material not found for editing.", 'error');
             // Form ko reset karein agar material nahi mila
@@ -180,6 +200,7 @@ materialForm.addEventListener('submit', async (e) => {
         const price = parseFloat(document.getElementById('price').value);
         const gst = parseFloat(form.gst.value);
         const hamali = parseFloat(form.hamali.value);
+        const transportation = parseFloat(form.transportation.value);
         
         if (!db || !userId) {
             throw new Error("User is not authenticated. Please log in and try again.");
@@ -189,6 +210,7 @@ materialForm.addEventListener('submit', async (e) => {
         const file = fileInput.files[0];
         if (file) {
             const storage = getStorage();
+            // Template literal ko sahi karein
             const storageRef = ref(storage, `user-uploads/${userId}/bills/${Timestamp.now().toMillis()}_${file.name}`);
             const uploadTask = await uploadBytes(storageRef, file);
             billPhotoUrl = await getDownloadURL(uploadTask.ref);
@@ -206,9 +228,11 @@ materialForm.addEventListener('submit', async (e) => {
             price,
             gst,
             hamali,
+            transportation,
             billPhotoUrl,
         };
 
+        // Template literal ko sahi karein
         const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
         if (isEditMode) {
             dataToSave.updatedAt = Timestamp.now();

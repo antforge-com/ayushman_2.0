@@ -12,7 +12,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
         :root {
@@ -35,7 +37,8 @@
             transition: all 0.2s ease;
         }
 
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             background: var(--bg);
@@ -105,7 +108,7 @@
         .hamburger::after {
             top: 7px;
         }
-        
+
         .left-logo-wrap {
             display: flex;
             align-items: center;
@@ -217,7 +220,7 @@
             display: flex;
             flex-direction: column;
         }
-        
+
         .form-group.grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -243,8 +246,9 @@
             background: #fafafa;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-        
-        input[readonly], textarea[readonly] {
+
+        input[readonly],
+        textarea[readonly] {
             background-color: #e9e9e9;
             color: #6b7280;
             cursor: not-allowed;
@@ -258,7 +262,7 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 2px rgba(35, 65, 35, 0.2);
         }
-        
+
         /* Custom file input styling */
         .file-input-wrapper {
             position: relative;
@@ -294,11 +298,11 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        
+
         .file-input-display .icon {
             color: var(--primary);
         }
-        
+
         .file-preview {
             margin-top: 1rem;
             border: 1px solid var(--border);
@@ -306,7 +310,7 @@
             padding: 0.5rem;
             display: none;
         }
-        
+
         .file-preview img {
             max-width: 100%;
             height: auto;
@@ -358,18 +362,18 @@
             text-decoration: none;
             box-shadow: 0 4px 15px rgba(124, 197, 143, 0.25);
         }
-        
+
         .btn-view-purchases:hover {
             background: linear-gradient(135deg, #d1e8d2, #b2d7b5);
             transform: translateY(-2px) scale(1.01);
             box-shadow: 0 8px 20px rgba(124, 197, 143, 0.35);
         }
-        
+
         .btn-view-purchases i {
             color: var(--primary);
             transition: transform 0.2s ease;
         }
-        
+
         /* Message styling */
         #addMaterialMsg {
             width: 100%;
@@ -392,7 +396,7 @@
             background: #f9e6e7;
             border-left: 4px solid #872a2a;
         }
-        
+
         .message-info {
             color: #1e40af;
             background: #eff6ff;
@@ -414,7 +418,7 @@
             border-bottom: 2px solid #e0e0e0;
             padding-bottom: 0.5rem;
         }
-        
+
         /* Loading spinner for button */
         .loading-spinner {
             border: 4px solid rgba(255, 255, 255, 0.3);
@@ -426,8 +430,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* Responsive overrides */
@@ -447,7 +456,7 @@
             .main-heading {
                 font-size: 2rem;
             }
-            
+
             .form-group.grid {
                 grid-template-columns: 1fr;
             }
@@ -459,19 +468,24 @@
     <!-- Top bar with hamburger + brand -->
     <header class="topbar" role="banner">
         <div class="left-logo-wrap">
-            <img src="assets/owner.jpg" onerror="this.onerror=null; this.src='https://placehold.co/40x40/e5e7eb/6b7280?text=O'" alt="User Logo">
+            <img src="assets/owner.jpg"
+                onerror="this.onerror=null; this.src='https://placehold.co/40x40/e5e7eb/6b7280?text=O'" alt="User Logo">
             <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open navigation" aria-controls="drawerNav"
                 aria-expanded="false">
                 <span class="hamburger" aria-hidden="true"></span>
             </button>
         </div>
-        <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/84x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo" class="topbar-logo">
+        <img src="assets/vasavi-logo.png"
+            onerror="this.onerror=null; this.src='https://placehold.co/84x40/e5e7eb/6b7280?text=Logo'"
+            alt="Vasavi Ayurveda Logo" class="topbar-logo">
     </header>
 
     <!-- Drawer navigation -->
     <nav class="drawer" id="drawerNav" aria-hidden="true">
         <div class="drawer-logo">
-            <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/80x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo">
+            <img src="assets/vasavi-logo.png"
+                onerror="this.onerror=null; this.src='https://placehold.co/80x40/e5e7eb/6b7280?text=Logo'"
+                alt="Vasavi Ayurveda Logo">
         </div>
         <a href="index.html" class="drawer-link">Home</a>
         <a href="add-material.html" class="drawer-link active">Add Material</a>
@@ -507,7 +521,8 @@
             </div>
             <div class="form-group">
                 <label for="description">Description</label>
-                <textarea name="description" id="description" rows="3" placeholder="Enter a short description of the purchase"></textarea>
+                <textarea name="description" id="description" rows="3"
+                    placeholder="Enter a short description of the purchase"></textarea>
             </div>
             <div class="form-group">
                 <label for="quantity">Quantity</label>
@@ -533,7 +548,13 @@
             </div>
             <div class="form-group">
                 <label for="hamali">Hamali (Loading/Unloading Charges)</label>
-                <input name="hamali" id="hamali" type="number" min="0" required value="0" placeholder="Enter Hamali Amount">
+                <input name="hamali" id="hamali" type="number" min="0" required value="0"
+                    placeholder="Enter Hamali Amount">
+            </div>
+            <div class="form-group">
+                <label for="transportation">Transportation</label>
+                <input name="transportation" id="transportation" type="number" min="0" required value="0"
+                    placeholder="Enter Transportation Amount">
             </div>
             <div class="form-group">
                 <label for="billPhoto">Bill Photo</label>

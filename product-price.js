@@ -15,6 +15,7 @@ const pricingResultsDiv = document.getElementById('pricingResults');
 const statusMessageDiv = document.getElementById('statusMessage');
 const buttonText = document.getElementById('buttonText');
 const loadingIndicator = document.getElementById('loadingIndicator');
+const viewAllPricesBtn = document.querySelector('.btn-view-prices');
 
 
 let materialRows = []; // Stores the current rows for material selection
@@ -113,7 +114,10 @@ function renderRows() {
 
     // Attach event listeners to the new elements
     document.querySelectorAll('.materialSelect').forEach(sel => sel.onchange = onRowChange);
-    document.querySelectorAll('.qtyInput').forEach(inp => inp.oninput = onRowChange);
+    document.querySelectorAll('.qtyInput').forEach(inp => {
+        inp.oninput = onRowChange;
+        inp.onchange = onRowChange;
+    });
     document.querySelectorAll('.unitSelect').forEach(sel => sel.onchange = onRowChange);
 
     updateTotals();
@@ -132,23 +136,46 @@ function onRowChange(e) {
         const mat = materials.find(m => m.id === row.materialId);
         
         if (mat) {
-            // Firestore mein unit `quantityUnit` hai aur price per unit `pricePerUnit`.
+            // Calculate grand total from db fields
+            const grandTotal =
+                (parseFloat(mat.price) || 0) +
+                (parseFloat(mat.gst) || 0) +
+                (parseFloat(mat.hamali) || 0); // Assuming 'transportation' might not always exist
             row.unit = mat.quantityUnit;
-            row.quantity = mat.quantity;
-            row.costPerUnit = mat.pricePerUnit;
+            // The quantity is now derived from the form input, not the stored material quantity.
+            // So we don't set row.quantity = mat.quantity here.
+            let quantityInGrams = mat.quantityUnit === 'kg' ? mat.quantity * 1000 : mat.quantity;
+
+            if (row.unit === 'kg') {
+                row.costPerUnit = grandTotal / (quantityInGrams / 1000);
+            } else if (row.unit === 'gram') {
+                row.costPerUnit = grandTotal / quantityInGrams;
+            }
         } else {
             row.quantity = 0;
             row.costPerUnit = 0;
+            row.unit = 'kg'; // Reset unit if no material is selected
         }
 
     } else if (e.target.classList.contains('qtyInput')) {
         row.quantity = +e.target.value;
+        row.totalCost = row.quantity * (row.costPerUnit || 0);
+        // Update the total cost cell directly
+        const tr = e.target.closest('tr');
+        if (tr) {
+            const totalCostCell = tr.querySelector('td:nth-child(5) span');
+            if (totalCostCell) {
+                totalCostCell.textContent = `₹${(row.totalCost || 0).toFixed(2)}`;
+            }
+        }
+        updateTotals();
+        return;
     } else if (e.target.classList.contains('unitSelect')) {
         const mat = materials.find(m => m.id === row.materialId);
         const newUnit = e.target.value;
 
         if (mat) {
-            const totalCalculatedPrice = mat.price;
+            const totalCalculatedPrice = (parseFloat(mat.price) || 0) + (parseFloat(mat.gst) || 0) + (parseFloat(mat.hamali) || 0);
             let quantityInGrams = mat.quantityUnit === 'kg' ? mat.quantity * 1000 : mat.quantity;
 
             if (newUnit === 'kg') {
@@ -157,6 +184,9 @@ function onRowChange(e) {
                 row.costPerUnit = totalCalculatedPrice / quantityInGrams;
             }
             row.unit = newUnit;
+        } else {
+             row.unit = newUnit; // If no material, just update the unit
+             row.costPerUnit = 0;
         }
     }
     
@@ -213,6 +243,7 @@ async function saveProductPrice(productData) {
         const collectionPath = `/artifacts/${appId}/users/${auth.currentUser.uid}/products`;
         await addDoc(collection(db, collectionPath), productData);
         showMessage('Product price saved successfully!', 'success');
+        // No redirect, just show the message
     } catch (error) {
         console.error("Error saving product price:", error);
         if (error.code === 'permission-denied') {
@@ -251,11 +282,17 @@ calcBtn.onclick = async () => {
     const bottleCost = numBottles * costPerBottle;
     const baseCost = totalMaterial + bottleCost;
 
-    // Your margin calculations
-    const margin1 = baseCost * 0.13; // 13% margin on base cost
-    const margin2 = (baseCost + margin1) * 0.12; // 12% margin on (baseCost + margin1)
+    // Updated margin calculations as per user request
+    const margin1 = baseCost * 1.13; // 113% of base cost
+    const margin2 = (baseCost + margin1) * 0.12; // 12% of (baseCost + margin1)
     const totalSellingPrice = baseCost + margin1 + margin2;
-    const grossPerBottle = totalSellingPrice / numBottles;
+    const grossPerBottle = (baseCost + margin1 + margin2) / numBottles;
+
+    // Update margin1 label if present
+    const margin1Label = document.getElementById('resultMargin1Label');
+    if (margin1Label) {
+        margin1Label.textContent = 'Margin 1 (113%)';
+    }
 
     pricingResultsDiv.style.display = 'block';
 
