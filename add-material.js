@@ -1,8 +1,9 @@
-import { db, userId, appId, initializeFirebase, collection, addDoc, Timestamp, query, where, getDocs } from "./firebase-config.js";
+import { db, userId, appId, initializeFirebase, collection, addDoc, Timestamp, query, where, getDocs, orderBy, limit } from "./firebase-config.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// DOM elements ko access karein
+// Access DOM elements
+const materialInput = document.getElementById('material');
 const quantityInput = document.getElementById('quantity');
 const quantityUnitSelect = document.getElementById('quantityUnit');
 let lastUnit = quantityUnitSelect.value;
@@ -20,29 +21,27 @@ const formTitle = document.querySelector('.main-heading');
 const formButtonText = document.getElementById('buttonText');
 const viewAllPurchasesBtn = document.querySelector('.btn-view-purchases');
 
-let currentBillPhotoUrl = null; // Edit mode mein current bill photo URL ko store karne ke liye
+let currentBillPhotoUrl = null; // To store the current bill photo URL in edit mode
 
 /**
- * User ko message dikhata hai.
- * @param {string} message Dikhane wala message.
- * @param {string} type Message ka prakar ('success', 'error', 'info').
+ * Displays a message to the user.
+ * @param {string} message The message to display.
+ * @param {string} type The type of message ('success', 'error', 'info').
  */
 function showMessage(message, type) {
     const msgDiv = document.getElementById('addMaterialMsg');
     msgDiv.textContent = message;
-    // Template literal ka sahi upyog kar rahe hain
     msgDiv.className = `message-box message-${type}`;
     msgDiv.classList.remove('hidden');
     setTimeout(() => {
         msgDiv.classList.add('hidden');
     }, 5000);
 }
-        
+
 /**
- * Quantity Unit ke aadhar par price label aur placeholder update karta hai.
+ * Updates the price label and placeholder based on the selected quantity unit.
  */
 function updatePriceLabel() {
-    // Detect unit change
     const previousUnit = lastUnit;
     const currentUnit = quantityUnitSelect.value;
     lastUnit = currentUnit;
@@ -50,14 +49,12 @@ function updatePriceLabel() {
     if (currentUnit === 'kg') {
         priceLabel.textContent = "Price per kg";
         pricePerUnitInput.placeholder = "Price per kg";
-        // If previous unit was gram, convert pricePerUnit to per kg
         if (previousUnit === 'gram' && pricePerUnitInput.value && !isNaN(parseFloat(pricePerUnitInput.value))) {
             pricePerUnitInput.value = (parseFloat(pricePerUnitInput.value) * 1000).toFixed(2);
         }
     } else {
         priceLabel.textContent = "Price per gram";
         pricePerUnitInput.placeholder = "Price per gram";
-        // If previous unit was kg, convert pricePerUnit to per gram
         if (previousUnit === 'kg' && pricePerUnitInput.value && !isNaN(parseFloat(pricePerUnitInput.value))) {
             pricePerUnitInput.value = (parseFloat(pricePerUnitInput.value) / 1000).toFixed(4);
         }
@@ -66,13 +63,13 @@ function updatePriceLabel() {
 }
 
 /**
- * Quantity aur price per unit ke aadhar par total price calculate karta hai.
+ * Calculates the total price based on quantity and price per unit.
  */
 function calculateTotalPrice() {
     const quantity = parseFloat(quantityInput.value);
     const quantityUnit = quantityUnitSelect.value;
     const pricePerUnit = parseFloat(pricePerUnitInput.value);
-    
+
     if (!isNaN(quantity) && !isNaN(pricePerUnit)) {
         let totalprice = 0;
         if (quantityUnit === 'kg') {
@@ -87,7 +84,7 @@ function calculateTotalPrice() {
 }
 
 /**
- * File input mein change hone par file ka naam aur preview update karta hai.
+ * Updates the file name and preview when a file is selected.
  */
 function handleFileSelect() {
     const file = fileInput.files[0];
@@ -111,8 +108,8 @@ function handleFileSelect() {
 }
 
 /**
- * Edit mode ke liye form ko data se populate karta hai.
- * @param {string} materialId - Edit karne ke liye material ka ID.
+ * Populates the form with data for editing.
+ * @param {string} materialId The ID of the material to edit.
  */
 async function loadMaterialForEdit(materialId) {
     try {
@@ -120,23 +117,18 @@ async function loadMaterialForEdit(materialId) {
         if (!db || !userId) {
             throw new Error("User is not authenticated. Cannot load data.");
         }
-        
-        // Template literal ko sahi karein
-        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
 
-        // Document ID ke aadhar par ek specific document fetch karne ke liye
-        // `getDoc` aur `doc` ka sahi upyog kar rahe hain
+        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
         const materialDocRef = doc(db, collectionPath, materialId);
         const materialDoc = await getDoc(materialDocRef);
-        
+
         if (materialDoc.exists()) {
             const data = materialDoc.data();
             materialIdInput.value = materialId;
             formTitle.textContent = "Edit Material Purchase";
             formButtonText.textContent = "Update Purchase";
-            viewAllPurchasesBtn.style.display = 'none'; // "View All Purchases" button ko hide karein
-            
-            // Form fields ko data se populate karein
+            viewAllPurchasesBtn.style.display = 'none';
+
             document.getElementById('material').value = data.material || '';
             document.getElementById('dealer').value = data.dealer || '';
             document.getElementById('gstNumber').value = data.gstNumber || '';
@@ -150,13 +142,12 @@ async function loadMaterialForEdit(materialId) {
             document.getElementById('gst').value = data.gst || 0;
             document.getElementById('hamali').value = data.hamali || 0;
             document.getElementById('transportation').value = data.transportation || 0;
-            
+
             currentBillPhotoUrl = data.billPhotoUrl || null;
-            handleFileSelect(); // File preview update karein
-            updatePriceLabel(); // Calculation ko trigger karein
+            handleFileSelect();
+            updatePriceLabel();
         } else {
             showMessage("Material not found for editing.", 'error');
-            // Form ko reset karein agar material nahi mila
             materialIdInput.value = '';
             materialForm.reset();
         }
@@ -167,8 +158,82 @@ async function loadMaterialForEdit(materialId) {
     }
 }
 
+/**
+ * Fetches the latest data for a given material name.
+ * @param {string} materialName The name of the material.
+ * @returns {Promise<object|null>} The latest material data or null if not found.
+ */
+async function fetchLatestMaterialData(materialName) {
+    try {
+        await initializeFirebase();
+        if (!db || !userId) {
+            console.error("User is not authenticated. Cannot fetch data.");
+            return null;
+        }
+
+        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
+        
+        // Query to get the latest record by timestamp
+        const q = query(
+            collection(db, collectionPath),
+            where('material', '==', materialName),
+            orderBy('timestamp', 'desc'),
+            limit(1)
+        );
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const latestDoc = querySnapshot.docs[0];
+            return latestDoc.data();
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching latest material data:", error);
+        return null;
+    }
+}
+
+/**
+ * Fills the form with the latest data when the user leaves the material input field.
+ */
+async function handleMaterialInputBlur() {
+    // Only run if we are not in edit mode
+    if (materialIdInput.value) {
+        return;
+    }
+
+    const materialName = materialInput.value.trim();
+    if (materialName) {
+        const latestData = await fetchLatestMaterialData(materialName);
+        if (latestData) {
+            // Fill the fields with the latest data
+            document.getElementById('dealer').value = latestData.dealer || '';
+            document.getElementById('gstNumber').value = latestData.gstNumber || '';
+            document.getElementById('quantityUnit').value = latestData.quantityUnit || 'kg';
+            document.getElementById('pricePerUnit').value = latestData.pricePerUnit || '';
+            document.getElementById('updatedCostPerUnit').value = latestData.updatedCostPerUnit || '';
+            document.getElementById('stock').value = latestData.stock || '';
+            showMessage(`Loaded recent data for "${materialName}".`, 'info');
+            
+            // Recalculate total price
+            calculateTotalPrice();
+        } else {
+            // If no data is found, reset the fields
+            document.getElementById('dealer').value = '';
+            document.getElementById('gstNumber').value = '';
+            document.getElementById('stock').value = '';
+            document.getElementById('pricePerUnit').value = '';
+            document.getElementById('updatedCostPerUnit').value = '';
+            document.getElementById('price').value = '';
+            showMessage('This is a new material.', 'info');
+        }
+    }
+}
+
 
 // Event listeners
+materialInput.addEventListener('change', handleMaterialInputBlur); // Use 'change' event to trigger on blur
 quantityInput.addEventListener('input', calculateTotalPrice);
 quantityUnitSelect.addEventListener('change', updatePriceLabel);
 pricePerUnitInput.addEventListener('input', calculateTotalPrice);
@@ -190,16 +255,12 @@ materialForm.addEventListener('submit', async (e) => {
     try {
         await initializeFirebase();
         
-        // form.material.value को trim() का उपयोग करके space हटा दें ताकि सटीक match मिल सके
-        const materialName = form.material.value.trim();
+        // Get data from the form
         const existingMaterialId = materialIdInput.value;
-
-        // Firestore में collection का path सेट करें
         const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
-        const materialsCollection = collection(db, collectionPath);
 
         let dataToSave = {
-            material: materialName,
+            material: form.material.value.trim(),
             dealer: form.dealer.value || null,
             gstNumber: form.gstNumber.value || null,
             description: form.description.value || null,
@@ -225,47 +286,19 @@ materialForm.addEventListener('submit', async (e) => {
             dataToSave.billPhotoUrl = billPhotoUrl;
         }
 
-        // --- NEW LOGIC: Check for existing material by name ---
-        // केवल तभी check करें जब यह edit mode में न हो
         if (!existingMaterialId) {
-            const q = query(materialsCollection, where('material', '==', materialName));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-                // Material पहले से मौजूद है, इसलिए इसे अपडेट करें
-                const existingDoc = querySnapshot.docs[0];
-                const oldData = existingDoc.data();
-                
-                // पुरानी मात्रा और स्टॉक में नई मात्रा जोड़ें
-                const newTotalQuantity = oldData.quantity + dataToSave.quantity;
-                const newTotalStock = oldData.stock + dataToSave.stock;
-
-                // डेटा को अपडेट करें
-                dataToSave.quantity = newTotalQuantity;
-                dataToSave.stock = newTotalStock;
-                dataToSave.updatedAt = Timestamp.now();
-                dataToSave.timestamp = oldData.timestamp; // Original timestamp ko na badlein
-
-                await updateDoc(doc(db, collectionPath, existingDoc.id), dataToSave);
-                showMessage('Material updated successfully!', 'success');
-                form.reset();
-                priceInput.value = '';
-                handleFileSelect();
-            } else {
-                // Material मौजूद नहीं है, इसलिए एक नया दस्तावेज़ जोड़ें
-                dataToSave.timestamp = Timestamp.now();
-                await addDoc(materialsCollection, dataToSave);
-                showMessage('New material added successfully!', 'success');
-                form.reset();
-                priceInput.value = '';
-                handleFileSelect();
-            }
+            // This is a new purchase, so always add a new document
+            dataToSave.timestamp = Timestamp.now();
+            await addDoc(collection(db, collectionPath), dataToSave);
+            showMessage('New material added successfully!', 'success');
+            form.reset();
+            priceInput.value = '';
+            handleFileSelect();
         } else {
-            // यह edit mode है, इसलिए मौजूदा दस्तावेज़ को अपडेट करें
+            // This is edit mode (came from the URL), so update the existing document
             dataToSave.updatedAt = Timestamp.now();
             await updateDoc(doc(db, collectionPath, existingMaterialId), dataToSave);
             showMessage('Material updated successfully!', 'success');
-            // Update के बाद सभी materials वाले पेज पर वापस जाएं
             window.location.href = 'all-materials.html';
         }
 
@@ -289,7 +322,7 @@ window.addEventListener('load', async () => {
     try {
         await initializeFirebase();
         
-        // URL से materialId को check करें
+        // Check for a materialId from the URL
         const urlParams = new URLSearchParams(window.location.search);
         const editId = urlParams.get('editId');
         

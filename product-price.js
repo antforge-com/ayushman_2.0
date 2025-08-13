@@ -1,6 +1,6 @@
 // product-price.js
 // Import necessary Firebase modules from the shared config file
-import { db, auth, appId, initializeFirebase, collection, getDocs, addDoc, Timestamp } from "./firebase-config.js";
+import { db, auth, appId, initializeFirebase, collection, getDocs, addDoc, Timestamp, query, where, orderBy, limit } from "./firebase-config.js";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -21,6 +21,7 @@ const viewAllPricesBtn = document.querySelector('.btn-view-prices');
 
 let materialRows = []; // Stores the current rows for material selection
 let materials = []; // Stores all materials fetched from Firestore
+let latestMaterials = {}; // Stores the latest material records for each unique material name
 
 // Drawer toggle elements
 const hamburgerBtn = document.getElementById('hamburgerBtn');
@@ -50,29 +51,40 @@ function showMessage(message, type) {
 async function fetchMaterials(currentUserId) {
     console.log('fetchMaterials: Attempting to fetch materials...');
     try {
-        // Reference the collection using the correct user-specific path
         const collectionPath = `/artifacts/${appId}/users/${currentUserId}/materials`;
         const materialsCollectionRef = collection(db, collectionPath);
-        const materialsSnap = await getDocs(materialsCollectionRef);
+        
+        // सभी material purchases को Fetch करें और उन्हें timestamp के अनुसार sort करें
+        const materialsSnap = await getDocs(query(materialsCollectionRef, orderBy('timestamp', 'desc')));
         console.log('fetchMaterials: Firestore query completed.');
 
         materials = [];
-        materialsSnap.forEach(doc => materials.push({ id: doc.id, ...doc.data() }));
+        latestMaterials = {}; // latestMaterials को रीसेट करें
+        const seenMaterials = new Set();
 
-        console.log('Loaded materials:', materials);
+        materialsSnap.forEach(doc => {
+            const data = doc.data();
+            materials.push({ id: doc.id, ...data });
 
-        // Sort materials by name
-        materials.sort((a, b) => ((a.material || '').localeCompare(b.material || '')));
-
-        // If no materials are found, display a message
-        if (materials.length === 0) {
+            // अगर यह इस material के लिए सबसे हाल का रिकॉर्ड है, तो इसे latestMaterials में store करें
+            if (!seenMaterials.has(data.material)) {
+                latestMaterials[data.material] = { id: doc.id, ...data };
+                seenMaterials.add(data.material);
+            }
+        });
+        
+        // एक unique list बनाने के लिए latestMaterials का उपयोग करें
+        const uniqueMaterials = Object.values(latestMaterials);
+        
+        console.log('Loaded materials for dropdown:', uniqueMaterials);
+        
+        if (uniqueMaterials.length === 0) {
             materialRowsDiv.innerHTML = '<tr><td colspan="6" class="text-center italic text-gray-500 py-4">No materials found. Please add materials first.</td></tr>';
         } else {
-            // If no material rows exist, add one
             if (materialRows.length === 0) {
                 materialRows.push({ materialId: '', quantity: 0, unit: 'kg', costPerUnit: 0, totalCost: 0 });
             }
-            renderRows();
+            renderRows(uniqueMaterials);
         }
     } catch (err) {
         console.error("Error fetching materials for calculator:", err);
@@ -82,14 +94,15 @@ async function fetchMaterials(currentUserId) {
 
 /**
  * Renders the material input rows on the page.
+ * @param {Array} uniqueMaterials - The list of unique materials to display in the dropdown.
  */
-function renderRows() {
+function renderRows(uniqueMaterials) {
     materialRowsDiv.innerHTML = materialRows.map((row, idx) => `
         <tr style="border-bottom:1px solid #eee;">
             <td style="padding:0.75rem 0.5rem;">
                 <select class="materialSelect" data-idx="${idx}" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
                     <option value="">Select Material</option>
-                    ${materials.map(m => `<option value="${m.id}" ${row.materialId === m.id ? 'selected' : ''}>${m.material || ''}</option>`).join('')}
+                    ${uniqueMaterials.map(m => `<option value="${m.id}" ${row.materialId === m.id ? 'selected' : ''}>${m.material || ''}</option>`).join('')}
                 </select>
             </td>
             <td style="padding:0.75rem 0.5rem;">
@@ -200,7 +213,7 @@ function onRowChange(e) {
     }
     
     row.totalCost = row.quantity * (row.costPerUnit || 0);
-    renderRows();
+    renderRows(Object.values(latestMaterials));
 }
 
 /**
@@ -209,7 +222,7 @@ function onRowChange(e) {
  */
 window.removeRow = function(idx) {
     materialRows.splice(idx, 1);
-    renderRows();
+    renderRows(Object.values(latestMaterials));
 };
 
 /**
@@ -231,7 +244,7 @@ function updateTotals() {
 // Add a new material row button
 document.getElementById('addRowBtn').onclick = () => {
     materialRows.push({ materialId: '', quantity: 0, unit: 'kg', costPerUnit: 0, totalCost: 0 });
-    renderRows();
+    renderRows(Object.values(latestMaterials));
 };
 
 // Update totals when bottle information changes
@@ -280,30 +293,38 @@ async function deductStock() {
 
         const updates = materialRows.map(async (row) => {
             const collectionPath = `/artifacts/${appId}/users/${auth.currentUser.uid}/materials`;
-            const docRef = doc(db, collectionPath, row.materialId);
+            
+            // materialId का उपयोग करके सबसे हाल का material रिकॉर्ड ढूंढें
+            const q = query(
+                collection(db, collectionPath),
+                where('material', '==', latestMaterials[materials.find(m => m.id === row.materialId).material].material),
+                orderBy('timestamp', 'desc'),
+                limit(1)
+            );
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+                console.warn(`Stock deduction failed: No recent record found for material ID ${row.materialId}.`);
+                return;
+            }
+            
+            const docRef = querySnapshot.docs[0].ref;
+            const docSnap = querySnapshot.docs[0];
 
-            // Get the current stock from Firestore
-            const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const currentData = docSnap.data();
                 
-                // Get the current stock from DB and the quantity to deduct from UI
                 let currentStock = parseFloat(currentData.stock) || 0;
                 let deduction = parseFloat(row.quantity) || 0;
                 
-                // BUG FIX: Deduction amount को stock की यूनिट के अनुसार बदलें
                 if (row.unit === 'gram' && currentData.quantityUnit === 'kg') {
-                    // अगर UI में gram है और DB में kg है, तो कटौती को भी kg में बदलें
                     deduction = deduction / 1000;
                 } else if (row.unit === 'kg' && currentData.quantityUnit === 'gram') {
-                    // अगर UI में kg है और DB में gram है, तो कटौती को भी gram में बदलें
                     deduction = deduction * 1000;
                 }
 
-                // नए स्टॉक की गणना करें, सुनिश्चित करें कि यह 0 से कम न हो
                 const newStock = Math.max(0, currentStock - deduction);
                 
-                // अपडेटेड स्टॉक को Firestore में वापस सेव करें
                 await updateDoc(docRef, {
                     stock: newStock
                 });
@@ -327,41 +348,45 @@ async function checkStock() {
         if (!row.materialId) {
             return null; // Skip if no material is selected for this row
         }
-        const docRef = doc(db, `/artifacts/${appId}/users/${auth.currentUser.uid}/materials`, row.materialId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            let currentStock = parseFloat(data.stock) || 0;
-            let requiredQuantity = row.quantity;
+        
+        // materialId का उपयोग करके सबसे हाल का material रिकॉर्ड ढूंढें
+        const q = query(
+            collection(db, `/artifacts/${appId}/users/${auth.currentUser.uid}/materials`),
+            where('material', '==', latestMaterials[materials.find(m => m.id === row.materialId).material].material),
+            orderBy('timestamp', 'desc'),
+            limit(1)
+        );
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            return `Insufficient stock for ${materials.find(m => m.id === row.materialId).material}: Material not found.`;
+        }
 
-            // Normalize units for comparison: convert everything to a common unit (e.g., kg)
-            // or perform conversion based on what the user selected in the UI
-            let stockInCommonUnit = currentStock;
-            let requiredInCommonUnit = requiredQuantity;
+        const data = querySnapshot.docs[0].data();
+        let currentStock = parseFloat(data.stock) || 0;
+        let requiredQuantity = parseFloat(row.quantity);
 
-            // This logic assumes we want to compare stock from the database (in its original unit)
-            // with the required quantity (in the unit selected in the UI)
-            if (row.unit !== data.quantityUnit) {
-                if (row.unit === 'gram' && data.quantityUnit === 'kg') {
-                    stockInCommonUnit = currentStock * 1000;
-                    requiredInCommonUnit = requiredQuantity;
-                    if (stockInCommonUnit < requiredInCommonUnit) {
-                        return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} g, Available: ${currentStock} kg (${stockInCommonUnit} g)`;
-                    }
-                } else if (row.unit === 'kg' && data.quantityUnit === 'gram') {
-                    stockInCommonUnit = currentStock / 1000;
-                    requiredInCommonUnit = requiredQuantity;
-                    if (stockInCommonUnit < requiredInCommonUnit) {
-                        return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} kg, Available: ${currentStock} g (${stockInCommonUnit} kg)`;
-                    }
+        // Normalize units for comparison: convert everything to a common unit (e.g., kg)
+        // or perform conversion based on what the user selected in the UI
+        let stockInCommonUnit = currentStock;
+        let requiredInCommonUnit = requiredQuantity;
+        
+        if (row.unit !== data.quantityUnit) {
+            if (row.unit === 'gram' && data.quantityUnit === 'kg') {
+                stockInCommonUnit = currentStock * 1000;
+                if (stockInCommonUnit < requiredInCommonUnit) {
+                    return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} g, Available: ${currentStock} kg (${stockInCommonUnit} g)`;
                 }
-            } else {
-                if (currentStock < requiredQuantity) {
-                    return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} ${row.unit}, Available: ${currentStock} ${data.quantityUnit}`;
+            } else if (row.unit === 'kg' && data.quantityUnit === 'gram') {
+                stockInCommonUnit = currentStock / 1000;
+                if (stockInCommonUnit < requiredInCommonUnit) {
+                    return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} kg, Available: ${currentStock} g (${stockInCommonUnit} kg)`;
                 }
             }
         } else {
-            return `Material not found in database: ${row.materialId}`;
+            if (currentStock < requiredQuantity) {
+                return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} ${row.unit}, Available: ${currentStock} ${data.quantityUnit}`;
+            }
         }
         return null;
     });
@@ -416,13 +441,11 @@ calcBtn.onclick = async () => {
     const bottleCost = numBottles * costPerBottle;
     const baseCost = totalMaterial + bottleCost;
 
-    // Updated margin calculations as per user request
-    const margin1 = baseCost * 1.13; // 113% of base cost
-    const margin2 = (baseCost + margin1) * 0.12; // 12% of (baseCost + margin1)
+    const margin1 = baseCost * 1.13;
+    const margin2 = (baseCost + margin1) * 0.12;
     const totalSellingPrice = baseCost + margin1 + margin2;
     const grossPerBottle = (baseCost + margin1 + margin2) / numBottles;
 
-    // Update margin1 label if present
     const margin1Label = document.getElementById('resultMargin1Label');
     if (margin1Label) {
         margin1Label.textContent = 'Margin 1 (113%)';
@@ -436,7 +459,6 @@ calcBtn.onclick = async () => {
     document.getElementById('resultTotalPrice').textContent = `₹${totalSellingPrice.toFixed(2)}`;
     document.getElementById('resultPricePerBottle').textContent = `₹${grossPerBottle.toFixed(2)}`;
 
-    // Prepare data for saving
     const productData = {
         name: `Product Calculation - ${new Date().toLocaleString()}`,
         materialsUsed: materialRows.map(row => {
@@ -464,10 +486,8 @@ calcBtn.onclick = async () => {
         timestamp: Timestamp.now(),
     };
 
-    // Call the new function to save to Firestore
     await saveProductPrice(productData);
     
-    // Hide loading state
     calcBtn.disabled = false;
     buttonText.classList.remove('hidden');
     loadingIndicator.classList.add('hidden');
