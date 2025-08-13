@@ -714,8 +714,16 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label for="editStock">Stock</label>
+                        <input name="stock" id="editStock" type="number" min="0" required>
+                    </div>
+                    <div class="form-group">
                         <label for="editPrice">Calculated Price</label>
                         <input name="price" id="editPrice" type="number" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUpdatedCostPerUnit">Updated Cost Per Unit</label>
+                        <input name="updatedCostPerUnit" id="editUpdatedCostPerUnit" type="number" min="0" required>
                     </div>
                     <div class="form-group">
                         <label for="editGst">GST Amount</label>
@@ -724,6 +732,10 @@
                     <div class="form-group">
                         <label for="editHamali">Hamali</label>
                         <input name="hamali" id="editHamali" type="number" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTransportation">Transportation</label>
+                        <input name="transportation" id="editTransportation" type="number" min="0" required>
                     </div>
                     <div class="edit-modal-footer">
                         <button type="button" class="modal-btn modal-btn-secondary" id="cancelEditBtn">Cancel</button>

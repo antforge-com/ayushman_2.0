@@ -122,14 +122,17 @@ const displayMaterials = (materials) => {
         // Description or a placeholder
         const descriptionDisplay = item.description ? `<p><strong>Description:</strong> <span>${item.description}</span></p>` : '';
 
-        const pricePerUnit = item.pricePerUnit !== undefined ? `₹${item.pricePerUnit.toFixed(2)}` : 'N/A';
         const quantity = item.quantity !== undefined ? `${item.quantity.toFixed(2)}` : 'N/A';
+        const stock = item.stock !== undefined ? `${item.stock.toFixed(2)}` : 'N/A';
         const unit = item.quantityUnit || 'N/A';
+        const pricePerUnit = item.pricePerUnit !== undefined ? `₹${item.pricePerUnit.toFixed(2)}` : 'N/A';
+        const updatedCostPerUnit = item.updatedCostPerUnit !== undefined ? `₹${item.updatedCostPerUnit.toFixed(2)}` : 'N/A';
         const price = item.price !== undefined ? `₹${item.price.toFixed(2)}` : 'N/A';
         const gst = item.gst !== undefined ? `₹${item.gst.toFixed(2)}` : 'N/A';
         const hamali = item.hamali !== undefined ? `₹${item.hamali.toFixed(2)}` : 'N/A';
-        const total = (item.price !== undefined && item.gst !== undefined && item.hamali !== undefined) ? 
-                      `₹${(item.price + item.gst + item.hamali).toFixed(2)}` : 'N/A';
+        const transportation = item.transportation !== undefined ? `₹${item.transportation.toFixed(2)}` : 'N/A';
+        const total = (item.price !== undefined && item.gst !== undefined && item.hamali !== undefined && item.transportation !== undefined) ? 
+                      `₹${(item.price + item.gst + item.hamali + item.transportation).toFixed(2)}` : 'N/A';
 
         // Bill Photo Link
         const billPhotoDisplay = item.billPhotoUrl ? `
@@ -165,10 +168,13 @@ const displayMaterials = (materials) => {
                         ${gstNumberDisplay}
                         ${descriptionDisplay}
                         <p><strong>Quantity:</strong> <span>${quantity} ${unit}</span></p>
+                        <p><strong>Stock:</strong> <span>${stock} ${unit}</span></p>
                         <p><strong>Price per unit:</strong> <span>${pricePerUnit}</span></p>
+                        <p><strong>Updated Cost Per Unit:</strong> <span>${updatedCostPerUnit}</span></p>
                         <p><strong>Total Price:</strong> <span>${price}</span></p>
                         <p><strong>GST Amount:</strong> <span>${gst}</span></p>
                         <p><strong>Hamali:</strong> <span>${hamali}</span></p>
+                        <p><strong>Transportation:</strong> <span>${transportation}</span></p>
                         <p><strong>Grand Total:</strong> <span>${total}</span></p>
                         ${billPhotoDisplay}
                         <p><strong>Added on:</strong> <span>${date} at ${time}</span></p>
