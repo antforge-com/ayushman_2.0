@@ -293,10 +293,10 @@ async function deductStock() {
                 
                 // BUG FIX: Deduction amount को stock की यूनिट के अनुसार बदलें
                 if (row.unit === 'gram' && currentData.quantityUnit === 'kg') {
-                    // अगर DB में स्टॉक kg में है और UI में ग्राम में है, तो कटौती को kg में बदलें
+                    // अगर UI में gram है और DB में kg है, तो कटौती को भी kg में बदलें
                     deduction = deduction / 1000;
                 } else if (row.unit === 'kg' && currentData.quantityUnit === 'gram') {
-                    // अगर DB में स्टॉक ग्राम में है और UI में kg में है, तो कटौती को ग्राम में बदलें
+                    // अगर UI में kg है और DB में gram है, तो कटौती को भी gram में बदलें
                     deduction = deduction * 1000;
                 }
 
@@ -316,6 +316,57 @@ async function deductStock() {
         console.error("Error deducting stock:", error);
         showMessage('Failed to deduct stock. Please check the logs.', 'error');
     }
+}
+
+/**
+ * Checks for sufficient stock before performing the calculation.
+ * @returns {Promise<string[]>} An array of error messages for insufficient stock, or an empty array if all is well.
+ */
+async function checkStock() {
+    const stockPromises = materialRows.map(async (row) => {
+        if (!row.materialId) {
+            return null; // Skip if no material is selected for this row
+        }
+        const docRef = doc(db, `/artifacts/${appId}/users/${auth.currentUser.uid}/materials`, row.materialId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            let currentStock = parseFloat(data.stock) || 0;
+            let requiredQuantity = row.quantity;
+
+            // Normalize units for comparison: convert everything to a common unit (e.g., kg)
+            // or perform conversion based on what the user selected in the UI
+            let stockInCommonUnit = currentStock;
+            let requiredInCommonUnit = requiredQuantity;
+
+            // This logic assumes we want to compare stock from the database (in its original unit)
+            // with the required quantity (in the unit selected in the UI)
+            if (row.unit !== data.quantityUnit) {
+                if (row.unit === 'gram' && data.quantityUnit === 'kg') {
+                    stockInCommonUnit = currentStock * 1000;
+                    requiredInCommonUnit = requiredQuantity;
+                    if (stockInCommonUnit < requiredInCommonUnit) {
+                        return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} g, Available: ${currentStock} kg (${stockInCommonUnit} g)`;
+                    }
+                } else if (row.unit === 'kg' && data.quantityUnit === 'gram') {
+                    stockInCommonUnit = currentStock / 1000;
+                    requiredInCommonUnit = requiredQuantity;
+                    if (stockInCommonUnit < requiredInCommonUnit) {
+                        return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} kg, Available: ${currentStock} g (${stockInCommonUnit} kg)`;
+                    }
+                }
+            } else {
+                if (currentStock < requiredQuantity) {
+                    return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} ${row.unit}, Available: ${currentStock} ${data.quantityUnit}`;
+                }
+            }
+        } else {
+            return `Material not found in database: ${row.materialId}`;
+        }
+        return null;
+    });
+
+    return (await Promise.all(stockPromises)).filter(error => error !== null);
 }
 
 // Calculate price when the button is clicked
