@@ -26,7 +26,7 @@ let userId;
 
 /**
  * Initializes Firebase and authenticates the user.
- * Firebase को इनिशियलाइज़ करता है और उपयोगकर्ता को प्रमाणित करता है।
+ * Firebase को इनिशियलाइज़ करता है और उपयोगकर्ता को प्रमाणित करता है।
  * यह एक Promise लौटाता है ताकि हम सुनिश्चित कर सकें कि Firebase पूरी तरह से तैयार है।
  */
 const initializeFirebase = async () => {
