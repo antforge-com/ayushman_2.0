@@ -559,31 +559,21 @@
                     placeholder="Enter a short description of the purchase"></textarea>
             </div>
             <div class="form-group">
-                <label for="quantity">Quantity</label>
+                <label for="quantity">Purchase Quantity</label>
                 <div class="form-group grid" style="grid-template-columns: 2fr 1fr; gap: 0.75rem;">
-                    <input name="quantity" id="quantity" type="number" min="1" required placeholder="Enter Quantity">
+                    <input name="quantity" id="quantity" type="number" min="0" required placeholder="Enter Quantity">
                     <select id="quantityUnit" name="quantityUnit">
                         <option value="kg">kg</option>
                         <option value="gram">gram</option>
                     </select>
                 </div>
             </div>
-            <!-- Added Stock field -->
             <div class="form-group">
-                <label for="stock">Stock</label>
-                <input name="stock" id="stock" type="number" min="0" required placeholder="Enter total stock">
-            </div>
-            <div class="form-group">
-                <label for="pricePerUnit" id="priceLabel">Price per kg</label>
+                <label for="pricePerUnit" id="priceLabel">Price per kg (of this purchase)</label>
                 <input name="pricePerUnit" id="pricePerUnit" type="number" min="0" required placeholder="Price per kg">
             </div>
-             <!-- Added Updated Cost Per Unit field -->
             <div class="form-group">
-                <label for="updatedCostPerUnit">Updated Cost Per Unit</label>
-                <input name="updatedCostPerUnit" id="updatedCostPerUnit" type="number" min="0" required placeholder="Enter updated cost per unit">
-            </div>
-            <div class="form-group">
-                <label for="price">Calculated Price</label>
+                <label for="price">Calculated Price (Total)</label>
                 <input name="price" id="price" type="number" min="0" readonly placeholder="Calculated Price">
             </div>
             <div class="form-group">
@@ -599,6 +589,15 @@
                 <label for="transportation">Transportation</label>
                 <input name="transportation" id="transportation" type="number" min="0" required value="0"
                     placeholder="Enter Transportation Amount">
+            </div>
+            <!-- This field is now for display only -->
+            <div class="form-group">
+                <label for="stock">Updated Stock</label>
+                <input name="stock" id="stock" type="number" min="0" readonly placeholder="Calculated total stock">
+            </div>
+            <div class="form-group">
+                <label for="updatedCostPerUnit">Updated Cost Per Unit (Total Average)</label>
+                <input name="updatedCostPerUnit" id="updatedCostPerUnit" type="number" min="0" readonly placeholder="Calculated average cost per unit">
             </div>
             <div class="form-group">
                 <label for="billPhoto">Bill Photo</label>

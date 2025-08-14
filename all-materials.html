@@ -395,7 +395,7 @@
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
-
+        
         .purchase-header {
             display: flex;
             justify-content: space-between;
@@ -419,45 +419,6 @@
             font-size: 1.1rem;
             font-weight: 700;
             color: var(--primary);
-        }
-
-        .purchase-header .toggle-icon {
-            transform: rotate(0deg);
-            transition: transform 0.2s ease;
-        }
-
-        .purchase-header.expanded .toggle-icon {
-            transform: rotate(180deg);
-        }
-        
-        .purchase-body {
-            padding: 1.25rem;
-            display: none;
-        }
-
-        .purchase-body.expanded {
-            display: block;
-        }
-        
-        .purchase-details p {
-            margin: 0;
-            padding: 0.25rem 0;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .purchase-details p strong {
-            font-weight: 600;
-        }
-        
-        .low-quantity-badge {
-            background: #fefcbf;
-            color: #8c760a;
-            font-weight: 600;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            display: inline-block;
-            font-size: 0.85rem;
         }
         
         .card-actions {
@@ -580,6 +541,42 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* New styles for history modal */
+        #historyModal {
+            align-items: flex-start;
+            padding-top: 5rem;
+            overflow-y: auto;
+        }
+
+        #historyModal .modal-content {
+            max-width: 600px;
+        }
+
+        .history-item {
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-item p {
+            margin: 0;
+            padding: 0.25rem 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .history-item p strong {
+            font-weight: 600;
+        }
+        
+        .history-item .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
         /* Responsive overrides */
         @media (max-width: 640px) {
@@ -625,6 +622,16 @@
         <a href="drug-entry.html" class="drawer-link">Add Drug</a>
         <a href="all-materials.html" class="drawer-link active">All Purchases</a>
         <a href="all-product-prices.html" class="drawer-link">All Product Prices</a>
+        <a href="#" id="logoutLink" class="logout-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 9V17H12L12 19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7H12V9H16Z"
+                    fill="currentColor" />
+                <path
+                    d="M9 14V12H2V14H9ZM9 12V14L12 11L9 8V10H2V12H9ZM9 12H11.5L9 9.5V12ZM9 12L11.5 14.5V12L9 9.5V12ZM16 7H12V9H16V17H12V19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7Z"
+                    fill="currentColor" />
+            </svg>
+            Logout
+        </a>
     </nav>
 
     <!-- Backdrop -->
@@ -703,7 +710,7 @@
                         <textarea name="description" id="editDescription" rows="3"></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="editQuantity">Quantity</label>
+                        <label for="editQuantity">Purchase Quantity</label>
                         <input name="quantity" id="editQuantity" type="number" min="0" required>
                     </div>
                     <div class="form-group">
@@ -714,16 +721,12 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="editStock">Stock</label>
-                        <input name="stock" id="editStock" type="number" min="0" required>
+                        <label for="editPricePerUnit">Price per unit</label>
+                        <input name="pricePerUnit" id="editPricePerUnit" type="number" min="0" required>
                     </div>
                     <div class="form-group">
                         <label for="editPrice">Calculated Price</label>
                         <input name="price" id="editPrice" type="number" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editUpdatedCostPerUnit">Updated Cost Per Unit</label>
-                        <input name="updatedCostPerUnit" id="editUpdatedCostPerUnit" type="number" min="0" required>
                     </div>
                     <div class="form-group">
                         <label for="editGst">GST Amount</label>
@@ -759,6 +762,19 @@
                 <div class="edit-modal-footer">
                     <button type="button" class="modal-btn modal-btn-secondary" id="cancelDeleteBtn">Cancel</button>
                     <button type="button" class="modal-btn modal-btn-primary" id="confirmDeleteBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- New History Modal -->
+        <div id="historyModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="historyModalTitle">Purchase History</h3>
+                    <button id="closeHistoryModalBtn" class="close-btn">&times;</button>
+                </div>
+                <div id="historyList">
+                    <!-- History items will be dynamically inserted here -->
                 </div>
             </div>
         </div>

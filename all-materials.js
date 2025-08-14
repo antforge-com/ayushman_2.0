@@ -23,8 +23,15 @@ const closeDeleteModalBtn = document.getElementById('closeDeleteModalBtn');
 const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
 const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
+// New History Modal Elements
+const historyModal = document.getElementById('historyModal');
+const closeHistoryModalBtn = document.getElementById('closeHistoryModalBtn');
+const historyListContainer = document.getElementById('historyList');
+
 let unsubscribe = null; // Firestore listener के लिए unsubscribe function store करने के लिए variable.
 let selectedMaterialIdForDeletion = null;
+let allMaterials = []; // सभी material purchases को store करने के लिए एक global array.
+
 
 /**
  * User ko message dikhata hai.
@@ -83,24 +90,42 @@ const setupMaterialListener = (currentUserId, optionalQuery = []) => {
     let finalQuery = query(baseQuery, ...optionalQuery);
     
     unsubscribe = onSnapshot(finalQuery, (snapshot) => {
-        const materials = [];
+        allMaterials = []; // global array को रीसेट करें
         snapshot.forEach(doc => {
-            materials.push({ id: doc.id, ...doc.data() });
+            allMaterials.push({ id: doc.id, ...doc.data() });
         });
 
         // नए timestamp के अनुसार client-side पर सामग्री को sort करें।
-        materials.sort((a, b) => {
+        allMaterials.sort((a, b) => {
             const timestampA = a.timestamp ? a.timestamp.toDate() : new Date(0);
             const timestampB = b.timestamp ? b.timestamp.toDate() : new Date(0);
             return timestampB - timestampA;
         });
-
-        displayMaterials(materials);
+        
+        // केवल नवीनतम खरीद प्रदर्शित करें
+        const latestMaterials = getLatestMaterials(allMaterials);
+        displayMaterials(latestMaterials);
     }, (error) => {
         console.error("Error listening to materials: ", error);
         materialsListContainer.innerHTML = '<div class="message-box message-error">Error loading data.</div>';
     });
 };
+
+/**
+ * सभी सामग्री प्रविष्टियों में से प्रत्येक सामग्री के लिए नवीनतम खरीद प्राप्त करता है।
+ * @param {Array} materials - सभी सामग्री प्रविष्टियों की सूची।
+ * @returns {Array} प्रत्येक सामग्री के लिए नवीनतम खरीद की सूची।
+ */
+const getLatestMaterials = (materials) => {
+    const latest = {};
+    materials.forEach(item => {
+        if (!latest[item.material] || (latest[item.material].timestamp && item.timestamp && latest[item.material].timestamp.toDate() < item.timestamp.toDate())) {
+            latest[item.material] = item;
+        }
+    });
+    return Object.values(latest);
+};
+
 
 /**
  * UI में सामग्रियों को गतिशील रूप से प्रदर्शित (dynamically display) करता है।
@@ -115,16 +140,14 @@ const displayMaterials = (materials) => {
     const materialCards = materials.map(item => {
         const date = item.timestamp ? item.timestamp.toDate().toLocaleDateString() : 'N/A';
         const time = item.timestamp ? item.timestamp.toDate().toLocaleTimeString() : 'N/A';
-        const isLowQuantity = (item.quantityUnit === 'kg' && item.quantity < 1) || (item.quantityUnit === 'gram' && item.quantity < 1000);
-
-        // GST Number or a placeholder
+        
+        const isLowStock = (item.quantityUnit === 'kg' && item.stock < 2) || (item.quantityUnit === 'gram' && item.stock < 2000);
         const gstNumberDisplay = item.gstNumber ? `<p><strong>GST Number:</strong> <span>${item.gstNumber}</span></p>` : '';
-        // Description or a placeholder
         const descriptionDisplay = item.description ? `<p><strong>Description:</strong> <span>${item.description}</span></p>` : '';
 
-        const quantity = item.quantity !== undefined ? `${item.quantity.toFixed(2)}` : 'N/A';
+        const purchaseQuantity = item.quantity !== undefined ? `${item.quantity.toFixed(2)}` : 'N/A';
+        const purchaseUnit = item.quantityUnit || 'N/A';
         const stock = item.stock !== undefined ? `${item.stock.toFixed(2)}` : 'N/A';
-        const unit = item.quantityUnit || 'N/A';
         const pricePerUnit = item.pricePerUnit !== undefined ? `₹${item.pricePerUnit.toFixed(2)}` : 'N/A';
         const updatedCostPerUnit = item.updatedCostPerUnit !== undefined ? `₹${item.updatedCostPerUnit.toFixed(2)}` : 'N/A';
         const price = item.price !== undefined ? `₹${item.price.toFixed(2)}` : 'N/A';
@@ -133,8 +156,6 @@ const displayMaterials = (materials) => {
         const transportation = item.transportation !== undefined ? `₹${item.transportation.toFixed(2)}` : 'N/A';
         const total = (item.price !== undefined && item.gst !== undefined && item.hamali !== undefined && item.transportation !== undefined) ? 
                       `₹${(item.price + item.gst + item.hamali + item.transportation).toFixed(2)}` : 'N/A';
-
-        // Bill Photo Link
         const billPhotoDisplay = item.billPhotoUrl ? `
             <p><strong>Bill Photo:</strong> 
                 <a href="${item.billPhotoUrl}" target="_blank" class="text-blue-500 hover:underline">
@@ -145,39 +166,30 @@ const displayMaterials = (materials) => {
 
         return `
             <article class="purchase-card">
-                <header class="purchase-header flex justify-between items-center" data-id="${item.id}">
+                <header class="purchase-header flex justify-between items-center">
                     <div class="flex items-center gap-2">
                         <h3>${item.material || 'Material Name'}</h3>
-                        ${isLowQuantity ? '<span class="low-quantity-badge">Low Quantity!</span>' : ''}
+                        ${isLowStock ? '<span class="low-quantity-badge">Low Stock!</span>' : ''}
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="card-actions">
-                            <button class="action-btn edit-btn" onclick="editMaterial('${item.id}', event)">
+                            <button class="action-btn" onclick="openHistoryModal('${item.material}', event)" title="View History">
+                                <i class="fa-solid fa-history"></i>
+                            </button>
+                            <button class="action-btn edit-btn" onclick="editMaterial('${item.id}', event)" title="Edit this purchase">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
-                            <button class="action-btn delete-btn" onclick="openDeleteModal('${item.id}', event)">
+                            <button class="action-btn delete-btn" onclick="openDeleteModal('${item.id}', event)" title="Delete this purchase">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
-                        <i class="fa-solid fa-chevron-down toggle-icon"></i>
                     </div>
                 </header>
-                <div class="purchase-body hidden" id="details-${item.id}">
+                <div class="purchase-body">
                     <div class="purchase-details flex flex-col gap-2">
-                        <p><strong>Dealer:</strong> <span>${item.dealer || 'N/A'}</span></p>
-                        ${gstNumberDisplay}
-                        ${descriptionDisplay}
-                        <p><strong>Quantity:</strong> <span>${quantity} ${unit}</span></p>
-                        <p><strong>Stock:</strong> <span>${stock} ${unit}</span></p>
-                        <p><strong>Price per unit:</strong> <span>${pricePerUnit}</span></p>
-                        <p><strong>Updated Cost Per Unit:</strong> <span>${updatedCostPerUnit}</span></p>
-                        <p><strong>Total Price:</strong> <span>${price}</span></p>
-                        <p><strong>GST Amount:</strong> <span>${gst}</span></p>
-                        <p><strong>Hamali:</strong> <span>${hamali}</span></p>
-                        <p><strong>Transportation:</strong> <span>${transportation}</span></p>
-                        <p><strong>Grand Total:</strong> <span>${total}</span></p>
-                        ${billPhotoDisplay}
-                        <p><strong>Added on:</strong> <span>${date} at ${time}</span></p>
+                        <p><strong>Total Stock:</strong> <span>${stock} ${purchaseUnit}</span></p>
+                        <p><strong>Average Cost Per Unit:</strong> <span>${updatedCostPerUnit}</span></p>
+                        <p><strong>Last Purchase:</strong> <span>${date} at ${time}</span></p>
                     </div>
                 </div>
             </article>
@@ -185,24 +197,6 @@ const displayMaterials = (materials) => {
     }).join('');
 
     materialsListContainer.innerHTML = materialCards;
-
-    // हर कार्ड के header पर event listener जोड़ें
-    document.querySelectorAll('.purchase-header').forEach(header => {
-        header.addEventListener('click', (event) => {
-            const cardBody = document.getElementById(`details-${header.dataset.id}`);
-            const isExpanded = cardBody.classList.contains('expanded');
-            
-            // Toggle the visibility of the details section
-            cardBody.classList.toggle('expanded');
-            header.classList.toggle('expanded');
-            
-            // Toggle the icon
-            const icon = header.querySelector('.toggle-icon');
-            if (icon) {
-                icon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
-            }
-        });
-    });
 };
 
 /**
@@ -224,6 +218,62 @@ window.openDeleteModal = (materialId, event) => {
     event.stopPropagation(); // Card ko expand hone se rokein
     selectedMaterialIdForDeletion = materialId;
     deleteModal.classList.remove('hidden');
+};
+
+/**
+ * History modal kholta hai aur specific material ke liye saari purchases dikhata hai.
+ * @param {string} materialName - History dekhne ke liye material ka naam.
+ * @param {Event} event - event object ko stop karne ke liye.
+ */
+window.openHistoryModal = (materialName, event) => {
+    event.stopPropagation();
+    document.getElementById('historyModalTitle').textContent = `${materialName} Purchase History`;
+    
+    // Filter allMaterials for the selected material
+    const history = allMaterials.filter(item => item.material === materialName);
+
+    if (history.length > 0) {
+        const historyHtml = history.map(item => {
+            const date = item.timestamp ? item.timestamp.toDate().toLocaleString() : 'N/A';
+            const purchaseQuantity = item.quantity !== undefined ? `${item.quantity.toFixed(2)}` : 'N/A';
+            const purchaseUnit = item.quantityUnit || 'N/A';
+            const pricePerUnit = item.pricePerUnit !== undefined ? `₹${item.pricePerUnit.toFixed(2)}` : 'N/A';
+            const totalPurchasePrice = item.price !== undefined ? `₹${item.price.toFixed(2)}` : 'N/A';
+            const billPhotoDisplay = item.billPhotoUrl ? `
+                <a href="${item.billPhotoUrl}" target="_blank" class="text-blue-500 hover:underline">
+                    View Bill <i class="fa-solid fa-up-right-from-square"></i>
+                </a>
+            ` : '';
+
+            return `
+                <div class="history-item">
+                    <div class="flex-between">
+                        <strong>Date:</strong> <span>${date}</span>
+                    </div>
+                    <div class="flex-between">
+                        <strong>Quantity:</strong> <span>${purchaseQuantity} ${purchaseUnit}</span>
+                    </div>
+                    <div class="flex-between">
+                        <strong>Price per unit:</strong> <span>${pricePerUnit}</span>
+                    </div>
+                    <div class="flex-between">
+                        <strong>Total Price:</strong> <span>${totalPurchasePrice}</span>
+                    </div>
+                    <div class="flex-between" style="margin-top:0.5rem;">
+                         ${billPhotoDisplay}
+                         <button class="action-btn edit-btn" onclick="editMaterial('${item.id}', event)">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        historyListContainer.innerHTML = historyHtml;
+    } else {
+        historyListContainer.innerHTML = '<p class="text-center italic text-gray-500">No history available for this material.</p>';
+    }
+
+    historyModal.classList.remove('hidden');
 };
 
 /**
@@ -260,6 +310,10 @@ closeModalBtn.addEventListener('click', () => {
     searchOptions.classList.remove('hidden');
     dealerSearchForm.classList.add('hidden');
     dateSearchForm.classList.add('hidden');
+});
+
+closeHistoryModalBtn.addEventListener('click', () => {
+    historyModal.classList.add('hidden');
 });
 
 searchByDealerBtn.addEventListener('click', () => {

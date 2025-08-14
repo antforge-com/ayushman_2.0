@@ -20,8 +20,12 @@ const materialIdInput = document.getElementById('materialId');
 const formTitle = document.querySelector('.main-heading');
 const formButtonText = document.getElementById('buttonText');
 const viewAllPurchasesBtn = document.querySelector('.btn-view-purchases');
+const stockInput = document.getElementById('stock');
 
 let currentBillPhotoUrl = null; // To store the current bill photo URL in edit mode
+let previousStock = 0; // Stores the stock from the most recent purchase
+let previousCostPerUnit = 0; // Stores the cost per unit from the most recent purchase
+let previousUnit = 'kg'; // Stores the unit of the fetched previous stock, default is 'kg'
 
 /**
  * Displays a message to the user.
@@ -42,45 +46,67 @@ function showMessage(message, type) {
  * Updates the price label and placeholder based on the selected quantity unit.
  */
 function updatePriceLabel() {
-    const previousUnit = lastUnit;
+    const oldUnit = lastUnit;
     const currentUnit = quantityUnitSelect.value;
     lastUnit = currentUnit;
 
     if (currentUnit === 'kg') {
-        priceLabel.textContent = "Price per kg";
+        priceLabel.textContent = "Price per kg (of this purchase)";
         pricePerUnitInput.placeholder = "Price per kg";
-        if (previousUnit === 'gram' && pricePerUnitInput.value && !isNaN(parseFloat(pricePerUnitInput.value))) {
+        // Convert price if unit changes
+        if (oldUnit === 'gram' && pricePerUnitInput.value && !isNaN(parseFloat(pricePerUnitInput.value))) {
             pricePerUnitInput.value = (parseFloat(pricePerUnitInput.value) * 1000).toFixed(2);
         }
     } else {
-        priceLabel.textContent = "Price per gram";
+        priceLabel.textContent = "Price per gram (of this purchase)";
         pricePerUnitInput.placeholder = "Price per gram";
-        if (previousUnit === 'kg' && pricePerUnitInput.value && !isNaN(parseFloat(pricePerUnitInput.value))) {
+        // Convert price if unit changes
+        if (oldUnit === 'kg' && pricePerUnitInput.value && !isNaN(parseFloat(pricePerUnitInput.value))) {
             pricePerUnitInput.value = (parseFloat(pricePerUnitInput.value) / 1000).toFixed(4);
         }
     }
-    calculateTotalPrice();
+    // Re-calculate prices after unit change
+    calculatePrices();
 }
 
 /**
- * Calculates the total price based on quantity and price per unit.
+ * Calculates the total purchase price, updated stock, and new cost per unit.
  */
-function calculateTotalPrice() {
-    const quantity = parseFloat(quantityInput.value);
-    const quantityUnit = quantityUnitSelect.value;
-    const pricePerUnit = parseFloat(pricePerUnitInput.value);
+function calculatePrices() {
+    // Check if the input value is a valid number, otherwise default to 0
+    const purchaseQuantity = parseFloat(quantityInput.value) || 0;
+    const purchasePricePerUnit = parseFloat(pricePerUnitInput.value) || 0;
+    const purchaseUnit = quantityUnitSelect.value;
 
-    if (!isNaN(quantity) && !isNaN(pricePerUnit)) {
-        let totalprice = 0;
-        if (quantityUnit === 'kg') {
-            totalprice = quantity * pricePerUnit;
-        } else if (quantityUnit === 'gram') {
-            totalprice = quantity * pricePerUnit;
-        }
-        priceInput.value = totalprice.toFixed(2);
-    } else {
-        priceInput.value = '';
+    let purchasePrice = 0;
+    if (!isNaN(purchaseQuantity) && !isNaN(purchasePricePerUnit)) {
+        purchasePrice = purchaseQuantity * purchasePricePerUnit;
     }
+    priceInput.value = purchasePrice.toFixed(2);
+
+    // Calculate the new total stock
+    let newTotalStock = 0;
+    // Normalize previous stock to the current purchase unit for calculation
+    let normalizedPreviousStock = previousStock;
+    if (purchaseUnit !== previousUnit) {
+        if (purchaseUnit === 'kg' && previousUnit === 'gram') {
+            normalizedPreviousStock = previousStock / 1000;
+        } else if (purchaseUnit === 'gram' && previousUnit === 'kg') {
+            normalizedPreviousStock = previousStock * 1000;
+        }
+    }
+    newTotalStock = normalizedPreviousStock + purchaseQuantity;
+    stockInput.value = newTotalStock.toFixed(2);
+    
+    // Calculate the new weighted average cost per unit
+    let newCostPerUnit = 0;
+    if (newTotalStock > 0) {
+        // Calculate total value of previous stock and new purchase
+        const previousTotalValue = normalizedPreviousStock * previousCostPerUnit;
+        const purchaseTotalValue = purchaseQuantity * purchasePricePerUnit;
+        newCostPerUnit = (previousTotalValue + purchaseTotalValue) / newTotalStock;
+    }
+    updatedCostPerUnitInput.value = newCostPerUnit.toFixed(4);
 }
 
 /**
@@ -104,57 +130,6 @@ function handleFileSelect() {
         fileNameSpan.textContent = 'Select an image...';
         filePreviewDiv.style.display = 'none';
         previewImage.src = '#';
-    }
-}
-
-/**
- * Populates the form with data for editing.
- * @param {string} materialId The ID of the material to edit.
- */
-async function loadMaterialForEdit(materialId) {
-    try {
-        await initializeFirebase();
-        if (!db || !userId) {
-            throw new Error("User is not authenticated. Cannot load data.");
-        }
-
-        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
-        const materialDocRef = doc(db, collectionPath, materialId);
-        const materialDoc = await getDoc(materialDocRef);
-
-        if (materialDoc.exists()) {
-            const data = materialDoc.data();
-            materialIdInput.value = materialId;
-            formTitle.textContent = "Edit Material Purchase";
-            formButtonText.textContent = "Update Purchase";
-            viewAllPurchasesBtn.style.display = 'none';
-
-            document.getElementById('material').value = data.material || '';
-            document.getElementById('dealer').value = data.dealer || '';
-            document.getElementById('gstNumber').value = data.gstNumber || '';
-            document.getElementById('description').value = data.description || '';
-            document.getElementById('quantity').value = data.quantity || '';
-            document.getElementById('stock').value = data.stock || '';
-            document.getElementById('quantityUnit').value = data.quantityUnit || 'kg';
-            document.getElementById('pricePerUnit').value = data.pricePerUnit || '';
-            document.getElementById('updatedCostPerUnit').value = data.updatedCostPerUnit || '';
-            document.getElementById('price').value = data.price || '';
-            document.getElementById('gst').value = data.gst || 0;
-            document.getElementById('hamali').value = data.hamali || 0;
-            document.getElementById('transportation').value = data.transportation || 0;
-
-            currentBillPhotoUrl = data.billPhotoUrl || null;
-            handleFileSelect();
-            updatePriceLabel();
-        } else {
-            showMessage("Material not found for editing.", 'error');
-            materialIdInput.value = '';
-            materialForm.reset();
-        }
-    } catch (error) {
-        console.error("Error loading material for edit:", error);
-        showMessage("Error loading material for editing. Please try again.", 'error');
-        materialIdInput.value = '';
     }
 }
 
@@ -211,32 +186,35 @@ async function handleMaterialInputBlur() {
             document.getElementById('dealer').value = latestData.dealer || '';
             document.getElementById('gstNumber').value = latestData.gstNumber || '';
             document.getElementById('quantityUnit').value = latestData.quantityUnit || 'kg';
-            document.getElementById('pricePerUnit').value = latestData.pricePerUnit || '';
-            document.getElementById('updatedCostPerUnit').value = latestData.updatedCostPerUnit || '';
-            document.getElementById('stock').value = latestData.stock || '';
-            showMessage(`Loaded recent data for "${materialName}".`, 'info');
             
-            // Recalculate total price
-            calculateTotalPrice();
+            // Store previous stock and cost for calculation
+            previousStock = parseFloat(latestData.stock) || 0;
+            previousCostPerUnit = parseFloat(latestData.updatedCostPerUnit) || 0;
+            previousUnit = latestData.quantityUnit || 'kg';
+
+            showMessage(`Loaded recent data for "${materialName}". You are adding to a stock of ${previousStock.toFixed(2)} ${latestData.quantityUnit} at a cost of ₹${previousCostPerUnit.toFixed(2)} per ${latestData.quantityUnit}.`, 'info');
+            
+            // Recalculate prices and stock based on any existing form data
+            calculatePrices();
         } else {
-            // If no data is found, reset the fields
+            // If no data is found, reset the fields and previous values
             document.getElementById('dealer').value = '';
             document.getElementById('gstNumber').value = '';
-            document.getElementById('stock').value = '';
-            document.getElementById('pricePerUnit').value = '';
-            document.getElementById('updatedCostPerUnit').value = '';
-            document.getElementById('price').value = '';
-            showMessage('This is a new material.', 'info');
+            document.getElementById('quantityUnit').value = 'kg';
+            previousStock = 0;
+            previousCostPerUnit = 0;
+            previousUnit = 'kg';
+            showMessage('This is a new material. Please enter all details.', 'info');
         }
     }
 }
 
 
 // Event listeners
-materialInput.addEventListener('change', handleMaterialInputBlur); // Use 'change' event to trigger on blur
-quantityInput.addEventListener('input', calculateTotalPrice);
+materialInput.addEventListener('blur', handleMaterialInputBlur);
+quantityInput.addEventListener('input', calculatePrices);
 quantityUnitSelect.addEventListener('change', updatePriceLabel);
-pricePerUnitInput.addEventListener('input', calculateTotalPrice);
+pricePerUnitInput.addEventListener('input', calculatePrices);
 fileInput.addEventListener('change', handleFileSelect);
 
 
@@ -258,6 +236,9 @@ materialForm.addEventListener('submit', async (e) => {
         // Get data from the form
         const existingMaterialId = materialIdInput.value;
         const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
+        
+        // Final calculation before saving
+        calculatePrices();
 
         let dataToSave = {
             material: form.material.value.trim(),
@@ -266,13 +247,14 @@ materialForm.addEventListener('submit', async (e) => {
             description: form.description.value || null,
             quantity: parseFloat(form.quantity.value),
             quantityUnit: form.quantityUnit.value,
-            stock: parseFloat(form.stock.value),
             pricePerUnit: parseFloat(form.pricePerUnit.value),
-            updatedCostPerUnit: parseFloat(form.updatedCostPerUnit.value),
-            price: parseFloat(document.getElementById('price').value),
+            price: parseFloat(priceInput.value),
             gst: parseFloat(form.gst.value),
             hamali: parseFloat(form.hamali.value),
             transportation: parseFloat(form.transportation.value),
+            // These fields are now calculated based on previous data + current purchase
+            stock: parseFloat(stockInput.value),
+            updatedCostPerUnit: parseFloat(updatedCostPerUnitInput.value),
         };
 
         let billPhotoUrl = currentBillPhotoUrl;
@@ -293,7 +275,13 @@ materialForm.addEventListener('submit', async (e) => {
             showMessage('New material added successfully!', 'success');
             form.reset();
             priceInput.value = '';
+            stockInput.value = '';
+            updatedCostPerUnitInput.value = '';
             handleFileSelect();
+            // Reset previous values for the next entry
+            previousStock = 0;
+            previousCostPerUnit = 0;
+            previousUnit = 'kg';
         } else {
             // This is edit mode (came from the URL), so update the existing document
             dataToSave.updatedAt = Timestamp.now();
@@ -341,6 +329,58 @@ window.addEventListener('load', async () => {
         showMessage("Firebase initialization failed. Please check your connection.", "error");
     }
 });
+
+// Populates the form with data for editing.
+async function loadMaterialForEdit(materialId) {
+    try {
+        await initializeFirebase();
+        if (!db || !userId) {
+            throw new Error("User is not authenticated. Cannot load data.");
+        }
+
+        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
+        const materialDocRef = doc(db, collectionPath, materialId);
+        const materialDoc = await getDoc(materialDocRef);
+
+        if (materialDoc.exists()) {
+            const data = materialDoc.data();
+            materialIdInput.value = materialId;
+            formTitle.textContent = "Edit Material Purchase";
+            formButtonText.textContent = "Update Purchase";
+            viewAllPurchasesBtn.style.display = 'none';
+
+            // Populate form fields for editing
+            document.getElementById('material').value = data.material || '';
+            document.getElementById('dealer').value = data.dealer || '';
+            document.getElementById('gstNumber').value = data.gstNumber || '';
+            document.getElementById('description').value = data.description || '';
+            document.getElementById('quantity').value = data.quantity || '';
+            document.getElementById('quantityUnit').value = data.quantityUnit || 'kg';
+            document.getElementById('pricePerUnit').value = data.pricePerUnit || '';
+            document.getElementById('price').value = data.price || '';
+            document.getElementById('gst').value = data.gst || 0;
+            document.getElementById('hamali').value = data.hamali || 0;
+            document.getElementById('transportation').value = data.transportation || 0;
+            
+            // These fields are calculated, so we just display the saved values in edit mode
+            document.getElementById('stock').value = data.stock || '';
+            document.getElementById('updatedCostPerUnit').value = data.updatedCostPerUnit || '';
+
+            currentBillPhotoUrl = data.billPhotoUrl || null;
+            handleFileSelect();
+            updatePriceLabel();
+        } else {
+            showMessage("Material not found for editing.", 'error');
+            materialIdInput.value = '';
+            materialForm.reset();
+        }
+    } catch (error) {
+        console.error("Error loading material for edit:", error);
+        showMessage("Error loading material for editing. Please try again.", 'error');
+        materialIdInput.value = '';
+    }
+}
+
 
 // Drawer toggle logic (reused from other pages)
 document.addEventListener('DOMContentLoaded', () => {
