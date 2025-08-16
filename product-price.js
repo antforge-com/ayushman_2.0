@@ -127,23 +127,50 @@ function renderRows(uniqueMaterials) {
     `).join('');
 
     // Attach event listeners to the new elements
-    document.querySelectorAll('.materialSelect').forEach(sel => sel.onchange = onRowChange);
+    document.querySelectorAll('.materialSelect').forEach(sel => sel.onchange = onMaterialOrUnitChange);
     document.querySelectorAll('.qtyInput').forEach(inp => {
-        inp.oninput = onRowChange;
-        inp.onchange = onRowChange;
+        inp.oninput = onQuantityChange;
     });
-    document.querySelectorAll('.unitSelect').forEach(sel => sel.onchange = onRowChange);
+    document.querySelectorAll('.unitSelect').forEach(sel => sel.onchange = onMaterialOrUnitChange);
 
     updateTotals();
 }
 
 /**
- * Handles changes in the material row inputs.
- * @param {Event} e - the change event.
+ * Handles changes in the quantity input field.
+ * This function is triggered on every input event (keystroke).
  */
-function onRowChange(e) {
+function onQuantityChange(e) {
     const idx = +e.target.dataset.idx;
     const row = materialRows[idx];
+
+    // Update the row object directly
+    row.quantity = +e.target.value;
+    row.totalCost = (row.quantity || 0) * (row.costPerUnit || 0);
+
+    // Update the total cost display for the specific row
+    const totalCostSpan = document.getElementById(`totalCost-${idx}`);
+    if (totalCostSpan) {
+        totalCostSpan.textContent = `₹${(row.totalCost || 0).toFixed(2)}`;
+    }
+    
+    // Update the overall totals
+    updateTotals();
+}
+
+/**
+ * Handles changes in the material selection or unit selection.
+ * @param {Event} e - the change event.
+ */
+function onMaterialOrUnitChange(e) {
+    const idx = +e.target.dataset.idx;
+    const row = materialRows[idx];
+
+    // Find the current elements for this row
+    const rowEl = e.target.closest('tr');
+    const costInputEl = rowEl.querySelector('.costInput');
+    const totalCostSpanEl = rowEl.querySelector(`#totalCost-${idx}`);
+    const unitSelectEl = rowEl.querySelector('.unitSelect');
 
     if (e.target.classList.contains('materialSelect')) {
         row.materialId = e.target.value;
@@ -163,15 +190,11 @@ function onRowChange(e) {
                 }
             }
             row.costPerUnit = costPerUnit;
-            
         } else {
             row.quantity = 0;
             row.costPerUnit = 0;
             row.unit = 'kg'; // Reset unit if no material is selected
         }
-
-    } else if (e.target.classList.contains('qtyInput')) {
-        row.quantity = +e.target.value;
     } else if (e.target.classList.contains('unitSelect')) {
         const mat = materials.find(m => m.id === row.materialId);
         const newUnit = e.target.value;
@@ -198,9 +221,18 @@ function onRowChange(e) {
     // The total cost is the quantity entered multiplied by the adjusted cost per unit
     row.totalCost = (row.quantity || 0) * (row.costPerUnit || 0);
 
-    // Re-render the rows to update the UI with the new costs
-    renderRows(Object.values(latestMaterials));
+    // Update the UI for this specific row
+    if (costInputEl) {
+        costInputEl.value = (row.costPerUnit || 0).toFixed(2);
+    }
+    if (totalCostSpanEl) {
+        totalCostSpanEl.textContent = `₹${(row.totalCost || 0).toFixed(2)}`;
+    }
+    
+    // Update the overall totals
+    updateTotals();
 }
+
 
 /**
  * Removes a material row.
@@ -235,7 +267,9 @@ document.getElementById('addRowBtn').onclick = () => {
 
 // Update totals when bottle information changes
 numBottlesInput.oninput = updateTotals;
+numBottlesInput.onchange = updateTotals;
 costPerBottleInput.oninput = updateTotals;
+costPerBottleInput.onchange = updateTotals;
 
 /**
  * Saves the product price calculation to Firestore.
@@ -405,6 +439,34 @@ function clearResults() {
     if (resultMargin2El) resultMargin2El.textContent = '';
     if (resultTotalPriceEl) resultTotalPriceEl.textContent = '';
     if (resultPricePerBottleEl) resultPricePerBottleEl.textContent = '';
+
+    // FIX: Clear the innerHTML of the pricingResultsDiv to remove previous error messages
+    pricingResultsDiv.innerHTML = `
+        <div class="results-grid">
+            <div style="padding:1.2rem;background:#f0f0f0;text-align:center;">
+                <div style="color:#666;margin-bottom:0.5rem;">Base Cost (₹)</div>
+                <div style="font-size:1.25rem;font-weight:700;" id="resultBasePrice"></div>
+                <div style="color:#666;font-size:0.875rem;">Total ingredient + bottle cost</div>
+            </div>
+            <div style="padding:1.2rem;background:#f0f0f0;text-align:center;">
+                <div style="color:#666;margin-bottom:0.5rem;">Margin 1 (113%)</div>
+                <div style="font-size:1.25rem;font-weight:700;" id="resultMargin1"></div>
+                <div style="color:#666;font-size:0.875rem;">Base Cost × 113%</div>
+            </div>
+            <div style="padding:1.2rem;background:#f0f0f0;text-align:center;">
+                <div style="color:#666;margin-bottom:0.5rem;">Margin 2 (12%)</div>
+                <div style="font-size:1.25rem;font-weight:700;" id="resultMargin2"></div>
+                <div style="color:#666;font-size:0.875rem;">(Base Cost + Margin 1) × 12%</div>
+            </div>
+        </div>
+        <div style="margin-top:1.5rem;text-align:center;padding:1.2rem;background:#234123;color:white;border-radius:12px;">
+            <div style="margin-bottom:0.5rem;">Total Selling Price</div>
+            <div style="font-size:1.5rem;font-weight:700;" id="resultTotalPrice"></div>
+            <div style="font-size:0.95rem;margin-top:0.5rem;">
+                Gross Selling Price per Bottle: <span id="resultPricePerBottle"></span>
+            </div>
+        </div>
+    `;
 }
 
 
