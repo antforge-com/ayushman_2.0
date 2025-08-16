@@ -1,5 +1,6 @@
 import { db, auth, appId, initializeFirebase, collection, onSnapshot, query, where, Timestamp } from './firebase-config.js';
 import { doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const productPricesListContainer = document.getElementById('productPricesList');
 const statusMessageDiv = document.getElementById('statusMessage');
@@ -229,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('hamburgerBtn');
     const drawer = document.getElementById('drawerNav');
     const backdrop = document.getElementById('backdrop');
+    const logoutLink = document.getElementById('logoutLink');
 
     if (btn && drawer && backdrop) {
         function openDrawer() {
@@ -265,6 +267,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     } else {
         console.error('Drawer elements not found. Check your HTML IDs.');
+    }
+    
+    // Fix for the Uncaught TypeError.
+    if (logoutLink) {
+        logoutLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await signOut(auth);
+                console.log("User signed out successfully.");
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error("Error signing out: ", error);
+            }
+        });
     }
 });
 

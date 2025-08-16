@@ -561,7 +561,7 @@
             <div class="form-group">
                 <label for="quantity">Purchase Quantity</label>
                 <div class="form-group grid" style="grid-template-columns: 2fr 1fr; gap: 0.75rem;">
-                    <input name="quantity" id="quantity" type="number" min="0" required placeholder="Enter Quantity">
+                    <input name="quantity" id="quantity" type="number" min="0" required placeholder="Enter Quantity" step="any">
                     <select id="quantityUnit" name="quantityUnit">
                         <option value="kg">kg</option>
                         <option value="gram">gram</option>
@@ -570,34 +570,45 @@
             </div>
             <div class="form-group">
                 <label for="pricePerUnit" id="priceLabel">Price per kg (of this purchase)</label>
-                <input name="pricePerUnit" id="pricePerUnit" type="number" min="0" required placeholder="Price per kg">
+                <input name="pricePerUnit" id="pricePerUnit" type="number" min="0" required placeholder="Price per kg" step="any">
             </div>
             <div class="form-group">
                 <label for="price">Calculated Price (Total)</label>
-                <input name="price" id="price" type="number" min="0" readonly placeholder="Calculated Price">
+                <input name="price" id="price" type="number" min="0" readonly placeholder="Calculated Price" step="any">
             </div>
             <div class="form-group">
                 <label for="gst">GST Amount</label>
-                <input name="gst" id="gst" type="number" min="0" required value="0" placeholder="Enter GST Amount">
+                <input name="gst" id="gst" type="number" min="0" required value="0" placeholder="Enter GST Amount" step="any">
             </div>
             <div class="form-group">
                 <label for="hamali">Hamali (Loading/Unloading Charges)</label>
                 <input name="hamali" id="hamali" type="number" min="0" required value="0"
-                    placeholder="Enter Hamali Amount">
+                    placeholder="Enter Hamali Amount" step="any">
             </div>
             <div class="form-group">
                 <label for="transportation">Transportation</label>
                 <input name="transportation" id="transportation" type="number" min="0" required value="0"
-                    placeholder="Enter Transportation Amount">
+                    placeholder="Enter Transportation Amount" step="any">
+            </div>
+            <!-- Added a new input field for minimum stock quantity with a unit selector -->
+            <div class="form-group">
+                <label for="minQuantity">Minimum Quantity Alert</label>
+                <div class="form-group grid" style="grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+                    <input name="minQuantity" id="minQuantity" type="number" min="0" value="0" placeholder="Enter minimum quantity" step="any">
+                    <select id="minQuantityUnit" name="minQuantityUnit">
+                        <option value="kg">kg</option>
+                        <option value="gram">gram</option>
+                    </select>
+                </div>
             </div>
             <!-- This field is now for display only -->
             <div class="form-group">
                 <label for="stock">Updated Stock</label>
-                <input name="stock" id="stock" type="number" min="0" readonly placeholder="Calculated total stock">
+                <input name="stock" id="stock" type="number" min="0" readonly placeholder="Calculated total stock" step="any">
             </div>
             <div class="form-group">
                 <label for="updatedCostPerUnit">Updated Cost Per Unit (Total Average)</label>
-                <input name="updatedCostPerUnit" id="updatedCostPerUnit" type="number" min="0" readonly placeholder="Calculated average cost per unit">
+                <input name="updatedCostPerUnit" id="updatedCostPerUnit" type="number" min="0" readonly placeholder="Calculated average cost per unit" step="any">
             </div>
             <div class="form-group">
                 <label for="billPhoto">Bill Photo</label>

@@ -6,9 +6,9 @@ const searchBtn = document.getElementById('searchBtn');
 const searchModal = document.getElementById('searchModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const searchOptions = document.getElementById('searchOptions');
-const searchByDealerBtn = document.getElementById('searchByDealerBtn');
+const searchByMaterialBtn = document.getElementById('searchByMaterialBtn');
 const searchByDateBtn = document.getElementById('searchByDateBtn');
-const dealerSearchForm = document.getElementById('dealerSearchForm');
+const materialSearchForm = document.getElementById('materialSearchForm');
 const dateSearchForm = document.getElementById('dateSearchForm');
 const statusMessageDiv = document.getElementById('statusMessage');
 
@@ -141,7 +141,7 @@ const displayMaterials = (materials) => {
         const date = item.timestamp ? item.timestamp.toDate().toLocaleDateString() : 'N/A';
         const time = item.timestamp ? item.timestamp.toDate().toLocaleTimeString() : 'N/A';
         
-        const isLowStock = (item.quantityUnit === 'kg' && item.stock < 2) || (item.quantityUnit === 'gram' && item.stock < 2000);
+        const isLowStock = item.stock < item.minQuantity; // Check if current stock is less than the minimum quantity
         const gstNumberDisplay = item.gstNumber ? `<p><strong>GST Number:</strong> <span>${item.gstNumber}</span></p>` : '';
         const descriptionDisplay = item.description ? `<p><strong>Description:</strong> <span>${item.description}</span></p>` : '';
 
@@ -308,7 +308,7 @@ searchBtn.addEventListener('click', () => {
 closeModalBtn.addEventListener('click', () => {
     searchModal.classList.add('hidden');
     searchOptions.classList.remove('hidden');
-    dealerSearchForm.classList.add('hidden');
+    materialSearchForm.classList.add('hidden');
     dateSearchForm.classList.add('hidden');
 });
 
@@ -316,9 +316,9 @@ closeHistoryModalBtn.addEventListener('click', () => {
     historyModal.classList.add('hidden');
 });
 
-searchByDealerBtn.addEventListener('click', () => {
+searchByMaterialBtn.addEventListener('click', () => {
     searchOptions.classList.add('hidden');
-    dealerSearchForm.classList.remove('hidden');
+    materialSearchForm.classList.remove('hidden');
 });
 
 searchByDateBtn.addEventListener('click', () => {
@@ -326,16 +326,16 @@ searchByDateBtn.addEventListener('click', () => {
     dateSearchForm.classList.remove('hidden');
 });
 
-dealerSearchForm.addEventListener('submit', (e) => {
+materialSearchForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const dealerName = document.getElementById('dealerName').value.trim();
-    if (dealerName) {
+    const materialName = document.getElementById('materialName').value.trim();
+    if (materialName) {
         const user = auth.currentUser;
-        const searchQueries = [where('dealer', '==', dealerName)];
+        const searchQueries = [where('material', '==', materialName)];
         setupMaterialListener(user.uid, searchQueries);
         searchModal.classList.add('hidden');
         searchOptions.classList.remove('hidden');
-        dealerSearchForm.classList.add('hidden');
+        materialSearchForm.classList.add('hidden');
     }
 });
 

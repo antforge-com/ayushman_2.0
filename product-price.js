@@ -17,6 +17,7 @@ const statusMessageDiv = document.getElementById('statusMessage');
 const buttonText = document.getElementById('buttonText');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const viewAllPricesBtn = document.querySelector('.btn-view-prices');
+const productNameInput = document.getElementById('productNameInput');
 
 
 let materialRows = []; // Stores the current rows for material selection
@@ -30,9 +31,9 @@ const backdrop = document.getElementById('backdrop');
 
 
 /**
- * User ko message dikhata hai.
- * @param {string} message Dikhane wala message.
- * @param {string} type Message ka prakar ('success', 'error', 'info').
+ * Displays a message to the user.
+ * @param {string} message The message to display.
+ * @param {string} type The type of message ('success', 'error', 'info').
  */
 function showMessage(message, type) {
     statusMessageDiv.textContent = message;
@@ -42,7 +43,6 @@ function showMessage(message, type) {
         statusMessageDiv.classList.add('hidden');
     }, 5000);
 }
-
 
 /**
  * Fetches all materials from Firebase.
@@ -54,26 +54,26 @@ async function fetchMaterials(currentUserId) {
         const collectionPath = `/artifacts/${appId}/users/${currentUserId}/materials`;
         const materialsCollectionRef = collection(db, collectionPath);
         
-        // सभी material purchases को Fetch करें और उन्हें timestamp के अनुसार sort करें
+        // Fetch all material purchases and sort them by timestamp
         const materialsSnap = await getDocs(query(materialsCollectionRef, orderBy('timestamp', 'desc')));
         console.log('fetchMaterials: Firestore query completed.');
 
         materials = [];
-        latestMaterials = {}; // latestMaterials को रीसेट करें
+        latestMaterials = {}; // Reset latestMaterials
         const seenMaterials = new Set();
 
         materialsSnap.forEach(doc => {
             const data = doc.data();
             materials.push({ id: doc.id, ...data });
 
-            // अगर यह इस material के लिए सबसे हाल का रिकॉर्ड है, तो इसे latestMaterials में store करें
+            // If this is the most recent record for this material, store it
             if (!seenMaterials.has(data.material)) {
                 latestMaterials[data.material] = { id: doc.id, ...data };
                 seenMaterials.add(data.material);
             }
         });
         
-        // एक unique list बनाने के लिए latestMaterials का उपयोग करें
+        // Use latestMaterials to create a unique list for the dropdown
         const uniqueMaterials = Object.values(latestMaterials);
         
         console.log('Loaded materials for dropdown:', uniqueMaterials);
@@ -150,26 +150,20 @@ function onRowChange(e) {
         const mat = materials.find(m => m.id === row.materialId);
         
         if (mat) {
-            // Calculate grand total from db fields
-            const grandTotal =
-                (parseFloat(mat.price) || 0) +
-                (parseFloat(mat.gst) || 0) +
-                (parseFloat(mat.hamali) || 0) +
-                (parseFloat(mat.transportation) || 0);
-            row.unit = mat.quantityUnit;
-            // The quantity is now derived from the form input, not the stored material quantity.
-            // So we don't set row.quantity = mat.quantity here.
-            let quantityInGrams = mat.quantityUnit === 'kg' ? mat.quantity * 1000 : mat.quantity;
-            let totalQuantity = mat.quantity;
-            if (mat.quantityUnit === 'gram' && totalQuantity) {
-                totalQuantity = totalQuantity / 1000;
+            // Get the updated cost per unit directly from the latest material record
+            let costPerUnit = parseFloat(mat.updatedCostPerUnit) || 0;
+            let matUnit = mat.quantityUnit || 'kg';
+            
+            // Adjust the cost per unit to the selected row unit for calculation
+            if (matUnit !== row.unit) {
+                if (row.unit === 'gram' && matUnit === 'kg') {
+                    costPerUnit = costPerUnit / 1000;
+                } else if (row.unit === 'kg' && matUnit === 'gram') {
+                    costPerUnit = costPerUnit * 1000;
+                }
             }
-
-            if (row.unit === 'kg') {
-                row.costPerUnit = grandTotal / totalQuantity;
-            } else if (row.unit === 'gram') {
-                row.costPerUnit = grandTotal / (totalQuantity * 1000);
-            }
+            row.costPerUnit = costPerUnit;
+            
         } else {
             row.quantity = 0;
             row.costPerUnit = 0;
@@ -178,41 +172,33 @@ function onRowChange(e) {
 
     } else if (e.target.classList.contains('qtyInput')) {
         row.quantity = +e.target.value;
-        row.totalCost = row.quantity * (row.costPerUnit || 0);
-        // Update the total cost cell directly
-        const tr = e.target.closest('tr');
-        if (tr) {
-            const totalCostCell = tr.querySelector('td:nth-child(5) span');
-            if (totalCostCell) {
-                totalCostCell.textContent = `₹${(row.totalCost || 0).toFixed(2)}`;
-            }
-        }
-        updateTotals();
-        return;
     } else if (e.target.classList.contains('unitSelect')) {
         const mat = materials.find(m => m.id === row.materialId);
         const newUnit = e.target.value;
+        row.unit = newUnit;
 
         if (mat) {
-            const totalCalculatedPrice = (parseFloat(mat.price) || 0) + (parseFloat(mat.gst) || 0) + (parseFloat(mat.hamali) || 0) + (parseFloat(mat.transportation) || 0);
-            let quantityInGrams = mat.quantityUnit === 'kg' ? mat.quantity * 1000 : mat.quantity;
-            let totalQuantity = mat.quantity;
-            if (mat.quantityUnit === 'gram' && totalQuantity) {
-                totalQuantity = totalQuantity / 1000;
+            let costPerUnit = parseFloat(mat.updatedCostPerUnit) || 0;
+            let matUnit = mat.quantityUnit || 'kg';
+            
+            // Adjust the cost per unit to the new selected row unit for calculation
+            if (matUnit !== newUnit) {
+                if (newUnit === 'gram' && matUnit === 'kg') {
+                    costPerUnit = costPerUnit / 1000;
+                } else if (newUnit === 'kg' && matUnit === 'gram') {
+                    costPerUnit = costPerUnit * 1000;
+                }
             }
-            if (newUnit === 'kg') {
-                row.costPerUnit = totalCalculatedPrice / totalQuantity;
-            } else if (newUnit === 'gram') {
-                row.costPerUnit = totalCalculatedPrice / (totalQuantity * 1000);
-            }
-            row.unit = newUnit;
+            row.costPerUnit = costPerUnit;
         } else {
-             row.unit = newUnit; // If no material, just update the unit
              row.costPerUnit = 0;
         }
     }
     
-    row.totalCost = row.quantity * (row.costPerUnit || 0);
+    // The total cost is the quantity entered multiplied by the adjusted cost per unit
+    row.totalCost = (row.quantity || 0) * (row.costPerUnit || 0);
+
+    // Re-render the rows to update the UI with the new costs
     renderRows(Object.values(latestMaterials));
 }
 
@@ -292,12 +278,17 @@ async function deductStock() {
         }
 
         const updates = materialRows.map(async (row) => {
+            if (!row.materialId) return; // Skip empty rows
+
             const collectionPath = `/artifacts/${appId}/users/${auth.currentUser.uid}/materials`;
             
-            // materialId का उपयोग करके सबसे हाल का material रिकॉर्ड ढूंढें
+            // Find the most recent material record using materialId
+            const materialItem = materials.find(m => m.id === row.materialId);
+            if (!materialItem) return;
+
             const q = query(
                 collection(db, collectionPath),
-                where('material', '==', latestMaterials[materials.find(m => m.id === row.materialId).material].material),
+                where('material', '==', latestMaterials[materialItem.material].material),
                 orderBy('timestamp', 'desc'),
                 limit(1)
             );
@@ -317,6 +308,7 @@ async function deductStock() {
                 let currentStock = parseFloat(currentData.stock) || 0;
                 let deduction = parseFloat(row.quantity) || 0;
                 
+                // Convert deduction quantity to the stock's unit
                 if (row.unit === 'gram' && currentData.quantityUnit === 'kg') {
                     deduction = deduction / 1000;
                 } else if (row.unit === 'kg' && currentData.quantityUnit === 'gram') {
@@ -349,44 +341,45 @@ async function checkStock() {
             return null; // Skip if no material is selected for this row
         }
         
-        // materialId का उपयोग करके सबसे हाल का material रिकॉर्ड ढूंढें
+        // Find the most recent material record using materialId
+        const materialItem = materials.find(m => m.id === row.materialId);
+        if (!materialItem) {
+            return `Insufficient stock for a material in the list. Please check your selections.`;
+        }
+
         const q = query(
             collection(db, `/artifacts/${appId}/users/${auth.currentUser.uid}/materials`),
-            where('material', '==', latestMaterials[materials.find(m => m.id === row.materialId).material].material),
+            where('material', '==', latestMaterials[materialItem.material].material),
             orderBy('timestamp', 'desc'),
             limit(1)
         );
         const querySnapshot = await getDocs(q);
         
         if (querySnapshot.empty) {
-            return `Insufficient stock for ${materials.find(m => m.id === row.materialId).material}: Material not found.`;
+            return `Insufficient stock for ${materialItem.material}: Material not found.`;
         }
 
         const data = querySnapshot.docs[0].data();
         let currentStock = parseFloat(data.stock) || 0;
         let requiredQuantity = parseFloat(row.quantity);
 
-        // Normalize units for comparison: convert everything to a common unit (e.g., kg)
-        // or perform conversion based on what the user selected in the UI
-        let stockInCommonUnit = currentStock;
-        let requiredInCommonUnit = requiredQuantity;
+        // Normalize units for comparison: convert both to a common unit (e.g., grams)
+        let stockInGrams = currentStock;
+        if (data.quantityUnit === 'kg') {
+             stockInGrams = currentStock * 1000;
+        }
         
-        if (row.unit !== data.quantityUnit) {
-            if (row.unit === 'gram' && data.quantityUnit === 'kg') {
-                stockInCommonUnit = currentStock * 1000;
-                if (stockInCommonUnit < requiredInCommonUnit) {
-                    return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} g, Available: ${currentStock} kg (${stockInCommonUnit} g)`;
-                }
-            } else if (row.unit === 'kg' && data.quantityUnit === 'gram') {
-                stockInCommonUnit = currentStock / 1000;
-                if (stockInCommonUnit < requiredInCommonUnit) {
-                    return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} kg, Available: ${currentStock} g (${stockInCommonUnit} kg)`;
-                }
-            }
-        } else {
-            if (currentStock < requiredQuantity) {
-                return `Insufficient stock for ${data.material}. Required: ${requiredQuantity} ${row.unit}, Available: ${currentStock} ${data.quantityUnit}`;
-            }
+        let requiredInGrams = requiredQuantity;
+        if (row.unit === 'kg') {
+             requiredInGrams = requiredQuantity * 1000;
+        }
+        
+        if (stockInGrams < requiredInGrams) {
+            // Revert units for a clear error message
+            let stockDisplay = currentStock.toFixed(2) + ' ' + data.quantityUnit;
+            let requiredDisplay = requiredQuantity.toFixed(2) + ' ' + row.unit;
+
+            return `Insufficient stock for ${data.material}. Required: ${requiredDisplay}, Available: ${stockDisplay}.`;
         }
         return null;
     });
@@ -394,27 +387,84 @@ async function checkStock() {
     return (await Promise.all(stockPromises)).filter(error => error !== null);
 }
 
+// FIX: Added a function to clear all previous results and errors from the UI
+function clearResults() {
+    // We do not clear the innerHTML here to preserve the result structure
+    // We only hide the section and ensure text is cleared if needed
+    pricingResultsDiv.style.display = 'none';
+    statusMessageDiv.classList.add('hidden');
+    // Clear the result spans to prevent old values from flashing
+    const resultBasePriceEl = document.getElementById('resultBasePrice');
+    const resultMargin1El = document.getElementById('resultMargin1');
+    const resultMargin2El = document.getElementById('resultMargin2');
+    const resultTotalPriceEl = document.getElementById('resultTotalPrice');
+    const resultPricePerBottleEl = document.getElementById('resultPricePerBottle');
+    
+    if (resultBasePriceEl) resultBasePriceEl.textContent = '';
+    if (resultMargin1El) resultMargin1El.textContent = '';
+    if (resultMargin2El) resultMargin2El.textContent = '';
+    if (resultTotalPriceEl) resultTotalPriceEl.textContent = '';
+    if (resultPricePerBottleEl) resultPricePerBottleEl.textContent = '';
+}
+
+
 // Calculate price when the button is clicked
 calcBtn.onclick = async () => {
+    // FIX: Clear all previous results and errors at the very beginning
+    clearResults();
+
     // Show loading state
     calcBtn.disabled = true;
-    buttonText.classList.add('hidden');
-    loadingIndicator.classList.remove('hidden');
+    if (buttonText) buttonText.classList.add('hidden');
+    if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+    
+    // Check if any material is selected
+    if (materialRows.some(row => row.materialId === '')) {
+         const errorHtml = `
+            <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;">
+                <h4 style="font-weight:600;margin-bottom:0.5rem;">Error:</h4>
+                <p>Please select a material for each row before calculating.</p>
+            </div>
+        `;
+        pricingResultsDiv.innerHTML = errorHtml;
+        pricingResultsDiv.style.display = 'block';
+
+        calcBtn.disabled = false;
+        if (buttonText) buttonText.classList.remove('hidden');
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
+        return;
+    }
+
 
     const totalMaterial = materialRows.reduce((sum, r) => sum + (r.totalCost || 0), 0);
     const numBottles = +numBottlesInput.value;
     const costPerBottle = +costPerBottleInput.value;
+    
+    const productName = productNameInput.value.trim();
+    if (!productName) {
+        pricingResultsDiv.innerHTML = `
+            <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;text-align:center;">
+                Please enter a product name.
+            </div>
+        `;
+        pricingResultsDiv.style.display = 'block';
+        calcBtn.disabled = false;
+        if (buttonText) buttonText.classList.remove('hidden');
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
+        return;
+    }
+    
 
     if (numBottles <= 0) {
-        pricingResultsDiv.style.display = 'block';
         pricingResultsDiv.innerHTML = `
             <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;text-align:center;">
                 Please enter a valid number of bottles (greater than 0).
             </div>
         `;
+        pricingResultsDiv.style.display = 'block';
         calcBtn.disabled = false;
-        buttonText.classList.remove('hidden');
-        loadingIndicator.classList.add('hidden');
+        if (buttonText) buttonText.classList.remove('hidden');
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
         return;
     }
     
@@ -422,8 +472,7 @@ calcBtn.onclick = async () => {
     const stockErrors = await checkStock();
 
     if (stockErrors.length > 0) {
-        pricingResultsDiv.style.display = 'block';
-        pricingResultsDiv.innerHTML = `
+        const errorHtml = `
             <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;">
                 <h4 style="font-weight:600;margin-bottom:0.5rem;">Stock Check Failed:</h4>
                 <ul style="list-style-type:disc;padding-left:1.5rem;">
@@ -431,9 +480,12 @@ calcBtn.onclick = async () => {
                 </ul>
             </div>
         `;
+        pricingResultsDiv.innerHTML = errorHtml;
+        pricingResultsDiv.style.display = 'block';
+
         calcBtn.disabled = false;
-        buttonText.classList.remove('hidden');
-        loadingIndicator.classList.add('hidden');
+        if (buttonText) buttonText.classList.remove('hidden');
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
         return;
     }
 
@@ -444,23 +496,26 @@ calcBtn.onclick = async () => {
     const margin1 = baseCost * 1.13;
     const margin2 = (baseCost + margin1) * 0.12;
     const totalSellingPrice = baseCost + margin1 + margin2;
-    const grossPerBottle = (baseCost + margin1 + margin2) / numBottles;
+    const grossPerBottle = totalSellingPrice / numBottles;
 
-    const margin1Label = document.getElementById('resultMargin1Label');
-    if (margin1Label) {
-        margin1Label.textContent = 'Margin 1 (113%)';
-    }
-
+    // Update the UI with the final results
+    // Ensure all elements exist before updating them
+    const resultBasePriceEl = document.getElementById('resultBasePrice');
+    const resultMargin1El = document.getElementById('resultMargin1');
+    const resultMargin2El = document.getElementById('resultMargin2');
+    const resultTotalPriceEl = document.getElementById('resultTotalPrice');
+    const resultPricePerBottleEl = document.getElementById('resultPricePerBottle');
+    
+    if (resultBasePriceEl) resultBasePriceEl.textContent = `₹${baseCost.toFixed(2)}`;
+    if (resultMargin1El) resultMargin1El.textContent = `₹${margin1.toFixed(2)}`;
+    if (resultMargin2El) resultMargin2El.textContent = `₹${margin2.toFixed(2)}`;
+    if (resultTotalPriceEl) resultTotalPriceEl.textContent = `₹${totalSellingPrice.toFixed(2)}`;
+    if (resultPricePerBottleEl) resultPricePerBottleEl.textContent = `₹${grossPerBottle.toFixed(2)}`;
+    
     pricingResultsDiv.style.display = 'block';
 
-    document.getElementById('resultBasePrice').textContent = `₹${baseCost.toFixed(2)}`;
-    document.getElementById('resultMargin1').textContent = `₹${margin1.toFixed(2)}`;
-    document.getElementById('resultMargin2').textContent = `₹${margin2.toFixed(2)}`;
-    document.getElementById('resultTotalPrice').textContent = `₹${totalSellingPrice.toFixed(2)}`;
-    document.getElementById('resultPricePerBottle').textContent = `₹${grossPerBottle.toFixed(2)}`;
-
     const productData = {
-        name: `Product Calculation - ${new Date().toLocaleString()}`,
+        name: productName, // Use the product name from the input field
         materialsUsed: materialRows.map(row => {
             const materialInfo = materials.find(m => m.id === row.materialId) || {};
             return {
@@ -489,8 +544,8 @@ calcBtn.onclick = async () => {
     await saveProductPrice(productData);
     
     calcBtn.disabled = false;
-    buttonText.classList.remove('hidden');
-    loadingIndicator.classList.add('hidden');
+    if (buttonText) buttonText.classList.remove('hidden');
+    if (loadingIndicator) loadingIndicator.classList.add('hidden');
 };
 
 /**
@@ -508,6 +563,7 @@ function toggleDrawer() {
  * Opens the drawer navigation.
  */
 function openDrawer() {
+    if (!drawerNav || !backdrop || !hamburgerBtn) return;
     drawerNav.classList.add('open');
     backdrop.classList.add('open');
     drawerNav.setAttribute('aria-hidden', 'false');
@@ -521,6 +577,7 @@ function openDrawer() {
  * Closes the drawer navigation.
  */
 function closeDrawer() {
+    if (!drawerNav || !backdrop || !hamburgerBtn) return;
     drawerNav.classList.remove('open');
     backdrop.classList.remove('open');
     drawerNav.setAttribute('aria-hidden', 'true');
