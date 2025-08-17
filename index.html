@@ -541,7 +541,7 @@
         <a href="index.html" class="drawer-link active">Home</a>
         <a href="add-material.html" class="drawer-link">Add Material</a>
         <a href="product-price.html" class="drawer-link">Add Product/Calculate</a>
-        <a href="drug-entry.html" class="drawer-link">Add Drug</a>
+        <a href="drug-entry.html" class="drawer-link" id="drugEntryLink">Add Drug</a>
         <a href="all-materials.html" class="drawer-link">Materials</a>
         <a href="all-product-prices.html" class="drawer-link">Products</a>
         <a href="#" id="logoutLink" class="logout-link">
@@ -620,7 +620,7 @@
             </a>
             
             <!-- Added a new card for Add Drug -->
-            <a href="drug-entry.html" class="card-link">
+            <a href="drug-entry.html" class="card-link" id="drugEntryCardLink">
                 <article class="card">
                     <div class="card-head">
                         <div class="card-icon icon-orange">💊</div>
@@ -662,7 +662,7 @@
 
     <!-- Firebase -->
     <script type="module">
-        import { initializeFirebase, auth } from "./firebase-config.js";
+        import { initializeFirebase, auth, db, getDoc, doc } from "./firebase-config.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         // This script will immediately check the auth state and redirect.
@@ -674,8 +674,47 @@
                     window.location.href = 'login.html';
                 } else {
                     console.log("User found, staying on home page.");
+                    checkUserRole(user.uid);
                 }
             });
+        }
+
+        // Check the user's role and conditionally show/hide the 'Add Drug' link
+        async function checkUserRole(uid) {
+            try {
+                if (!db) {
+                    console.error("Firestore not initialized.");
+                    return;
+                }
+                const userDocRef = doc(db, "userRoles", uid);
+                // FIX: Changed getDocs() to getDoc() for a single document fetch
+                const userRoleSnap = await getDoc(userDocRef);
+
+                const drugEntryLink = document.getElementById('drugEntryLink');
+                const drugEntryCardLink = document.getElementById('drugEntryCardLink');
+                
+                if (userRoleSnap.exists()) {
+                    const role = userRoleSnap.data().role;
+                    if (role !== 'admin') {
+                        if (drugEntryLink) drugEntryLink.style.display = 'none';
+                        if (drugEntryCardLink) drugEntryCardLink.style.display = 'none';
+                    } else {
+                        if (drugEntryLink) drugEntryLink.style.display = 'block';
+                        if (drugEntryCardLink) drugEntryCardLink.style.display = 'block';
+                    }
+                } else {
+                    // Default to non-admin if no role is found
+                    if (drugEntryLink) drugEntryLink.style.display = 'none';
+                    if (drugEntryCardLink) drugEntryCardLink.style.display = 'none';
+                }
+            } catch (error) {
+                console.error("Error fetching user role:", error);
+                // Hide links in case of an error to be safe
+                const drugEntryLink = document.getElementById('drugEntryLink');
+                const drugEntryCardLink = document.getElementById('drugEntryCardLink');
+                if (drugEntryLink) drugEntryLink.style.display = 'none';
+                if (drugEntryCardLink) drugEntryCardLink.style.display = 'none';
+            }
         }
         
         // Call the function when the window loads.

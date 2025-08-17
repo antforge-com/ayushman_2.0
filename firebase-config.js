@@ -1,14 +1,11 @@
 // firebase-config.js
 
 // Firebase modules from the shared config file.
-// साझा कॉन्फ़िगरेशन फ़ाइल से Firebase मॉड्यूल.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, onSnapshot, addDoc, getDocs, doc, setDoc, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, addDoc, getDocs, doc, setDoc, query, where, Timestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // Firebase configuration for your web app.
-// आपके वेब ऐप के लिए Firebase कॉन्फ़िगरेशन.
-// आपको यह कॉन्फ़िगरेशन आपके FlutterFire फ़ाइल से प्राप्त हुआ है.
 const firebaseConfig = {
     apiKey: 'AIzaSyDPdyMpNZjbc_ktg79U9IAZnmzafSbD8-Q',
     authDomain: 'ayushman-bhava-11a4f.firebaseapp.com',
@@ -26,8 +23,7 @@ let userId;
 
 /**
  * Initializes Firebase and authenticates the user.
- * Firebase को इनिशियलाइज़ करता है और उपयोगकर्ता को प्रमाणित करता है।
- * यह एक Promise लौटाता है ताकि हम सुनिश्चित कर सकें कि Firebase पूरी तरह से तैयार है।
+ * It returns a Promise to ensure Firebase is fully ready.
  */
 const initializeFirebase = async () => {
     return new Promise((resolve, reject) => {
@@ -61,4 +57,4 @@ const initializeFirebase = async () => {
     });
 };
 
-export { db, auth, userId, appId, initializeFirebase, collection, onSnapshot, addDoc, getDocs, doc, setDoc, query, where, Timestamp };
+export { db, auth, userId, appId, initializeFirebase, collection, onSnapshot, addDoc, getDocs, doc, setDoc, query, where, Timestamp, getDoc };
