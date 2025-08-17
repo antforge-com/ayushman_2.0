@@ -248,7 +248,11 @@ async function handleMaterialInputBlur() {
 // Event listeners
 materialInput.addEventListener('blur', handleMaterialInputBlur);
 quantityInput.addEventListener('input', calculatePrices);
-quantityUnitSelect.addEventListener('change', updatePriceLabel);
+// FIXED: Add an event listener to call `calculatePrices` when the quantity unit changes
+quantityUnitSelect.addEventListener('change', () => {
+    updatePriceLabel();
+    calculatePrices();
+});
 pricePerUnitInput.addEventListener('input', calculatePrices);
 fileInput.addEventListener('change', handleFileSelect);
 
