@@ -21,14 +21,14 @@ const searchByDateBtn = document.getElementById('searchByDateBtn');
 const productSearchForm = document.getElementById('productSearchForm');
 const dateSearchForm = document.getElementById('dateSearchForm');
 
-let unsubscribe = null; // Firestore listener के लिए unsubscribe function store करने के लिए variable.
+let unsubscribe = null; // Variable to store the unsubscribe function for the Firestore listener.
 let selectedProductIdForDeletion = null;
 
 
 /**
- * User ko message dikhata hai.
- * @param {string} message Dikhane wala message.
- * @param {string} type Message ka prakar ('success', 'error', 'info').
+ * Displays a message to the user.
+ * @param {string} message The message to display.
+ * @param {string} type The type of message ('success', 'error', 'info').
  */
 function showMessage(message, type) {
     statusMessageDiv.textContent = message;
@@ -40,7 +40,7 @@ function showMessage(message, type) {
 }
 
 /**
- * जांच करता है कि उपयोगकर्ता प्रमाणित (authenticated) है या नहीं और डेटा श्रोता (listener) ko सेट करता है।
+ * Checks if the user is authenticated and sets up the data listener.
  */
 const setupAuthCheck = async () => {
     try {
@@ -62,13 +62,13 @@ const setupAuthCheck = async () => {
 };
 
 /**
- * वर्तमान उपयोगकर्ता के लिए products collection पर एक real-time listener सेट करता है।
- * @param {string} currentUserId - वर्तमान में login हुए उपयोगकर्ता का ID.
- * @param {object} optionalQuery - एक वैकल्पिक Firestore query जो एक filter लागू करने के लिए है।
+ * Sets up a real-time listener for the products collection for the current user.
+ * @param {string} currentUserId - The ID of the currently logged-in user.
+ * @param {object} optionalQuery - An optional Firestore query to apply a filter.
  */
 const setupProductPriceListener = (currentUserId, optionalQuery = []) => {
     if (unsubscribe) {
-        unsubscribe(); // पिछले listener से unsubscribe करें
+        unsubscribe(); // Unsubscribe from the previous listener
     }
 
     if (!db || !currentUserId) {
@@ -87,11 +87,13 @@ const setupProductPriceListener = (currentUserId, optionalQuery = []) => {
             productPrices.push({ id: doc.id, ...doc.data() });
         });
 
-        // नए timestamp के अनुसार client-side पर डेटा को sort करें।
+        // Sort data on the client-side alphabetically by product name
         productPrices.sort((a, b) => {
-            const timestampA = a.timestamp ? a.timestamp.toDate() : new Date(0);
-            const timestampB = b.timestamp ? b.timestamp.toDate() : new Date(0);
-            return timestampB - timestampA;
+            const nameA = a.name ? a.name.toLowerCase() : '';
+            const nameB = b.name ? b.name.toLowerCase() : '';
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+            return 0;
         });
 
         displayProductPrices(productPrices);
@@ -102,8 +104,8 @@ const setupProductPriceListener = (currentUserId, optionalQuery = []) => {
 };
 
 /**
- * UI में product prices को गतिशील रूप से प्रदर्शित (dynamically display) करता है।
- * @param {Array} productPrices - प्रदर्शित होने वाली product prices की सूची।
+ * Dynamically displays product prices in the UI.
+ * @param {Array} productPrices - The list of product prices to display.
  */
 const displayProductPrices = (productPrices) => {
     if (productPrices.length === 0) {
@@ -176,7 +178,7 @@ const displayProductPrices = (productPrices) => {
 
     productPricesListContainer.innerHTML = productCards;
 
-    // हर कार्ड के header पर event listener जोड़ें
+    // Add event listeners to each card header
     document.querySelectorAll('.price-header').forEach(header => {
         header.addEventListener('click', (event) => {
             const cardBody = document.getElementById(`details-${header.dataset.id}`);
@@ -196,18 +198,18 @@ const displayProductPrices = (productPrices) => {
 };
 
 /**
- * Delete confirmation modal kholta hai.
- * @param {string} productId - Delete karne ke liye product price ka ID.
- * @param {Event} event - event object ko stop karne ke liye.
+ * Opens the delete confirmation modal.
+ * @param {string} productId - The ID of the product price to delete.
+ * @param {Event} event - The event object to stop propagation.
  */
 window.openDeleteModal = (productId, event) => {
-    event.stopPropagation(); // Card ko expand hone se rokein
+    event.stopPropagation(); // Prevent card from expanding
     selectedProductIdForDeletion = productId;
     deleteModal.classList.remove('hidden');
 };
 
 /**
- * Firestore se ek product price document delete karta hai.
+ * Deletes a product price document from Firestore.
  */
 const deleteProductPrice = async () => {
     const user = auth.currentUser;

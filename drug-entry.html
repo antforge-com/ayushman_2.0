@@ -175,6 +175,31 @@
             border-left-color: var(--primary);
         }
 
+        /* New styles for the logout link */
+        .logout-link {
+            margin-top: auto; /* Pushes the link to the bottom */
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #ef4444; /* Red color for logout */
+            font-weight: 600;
+            padding: 12px 18px;
+            border-left: 4px solid transparent;
+            transition: background .2s ease, border-left-color .2s ease;
+        }
+        
+        .logout-link:hover {
+            background: #fef2f2; /* Light red background on hover */
+            border-left-color: #ef4444;
+        }
+
+        .logout-link svg {
+            width: 24px;
+            height: 24px;
+            fill: #ef4444;
+        }
+
+
         .backdrop {
             position: fixed;
             inset: 0;
@@ -462,9 +487,20 @@
         </div>
         <a href="index.html" class="drawer-link">Home</a>
         <a href="add-material.html" class="drawer-link">Add Material</a>
-        <a href="product-price.html" class="drawer-link">Product Price</a>
+        <a href="product-price.html" class="drawer-link">Add Product/Calculate</a>
         <a href="drug-entry.html" class="drawer-link active">Add Drug</a>
-        <a href="all-materials.html" class="drawer-link">All Purchases</a>
+        <a href="all-materials.html" class="drawer-link">Materials</a>
+        <a href="all-product-prices.html" class="drawer-link">Products</a>
+        <a href="#" id="logoutLink" class="logout-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 9V17H12L12 19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7H12V9H16Z"
+                    fill="currentColor" />
+                <path
+                    d="M9 14V12H2V14H9ZM9 12V14L12 11L9 8V10H2V12H9ZM9 12H11.5L9 9.5V12ZM9 12L11.5 14.5V12L9 9.5V12ZM16 7H12V9H16V17H12V19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7Z"
+                    fill="currentColor" />
+            </svg>
+            Logout
+        </a>
     </nav>
 
     <!-- Backdrop -->
@@ -570,7 +606,7 @@
     <!-- Firebase and Form Logic -->
     <script type="module">
         import { db, userId, appId, initializeFirebase, collection, addDoc, getDocs, Timestamp } from "./firebase-config.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         // Pre-defined categories
         let _allCategories = [
@@ -605,15 +641,35 @@
             msgDiv.classList.add('hidden');
         }
 
+        // --- Authentication Check ---
+        async function setupAuthCheck() {
+            try {
+                await initializeFirebase();
+                onAuthStateChanged(getAuth(), (user) => {
+                    if (!user) {
+                        console.log("No user found, redirecting to login page.");
+                        window.location.href = 'login.html';
+                    } else {
+                        console.log("User found, loading page content.");
+                        fetchAndSetCategories();
+                    }
+                });
+            } catch (err) {
+                console.error("Firebase initialization failed:", err);
+                showMessage("Firebase initialization failed. Please check your connection.", "error");
+            }
+        }
+
+
         // --- Category Management ---
         async function fetchAndSetCategories() {
             try {
-                await initializeFirebase(); // Ensure Firebase is initialized
+                await initializeFirebase();
                 if (!db || !userId) {
                     throw new Error("Firestore instance or user ID not available, cannot fetch categories.");
                 }
                 const fetchedCategoriesSet = new Set(_allCategories);
-                const collectionPath = `/artifacts/${appId}/users/${userId}/drugs`;
+                const collectionPath = 'drugs'; 
                 const querySnapshot = await getDocs(collection(db, collectionPath));
 
                 querySnapshot.forEach(doc => {
@@ -868,8 +924,8 @@
             try {
                 await initializeFirebase();
 
-                if (!db || !userId) {
-                    throw new Error("User is not authenticated. Please log in and try again.");
+                if (!db) {
+                    throw new Error("Firestore instance not available. Please try again.");
                 }
 
                 const drugName = form.querySelector("#drugName").value.trim();
@@ -882,8 +938,6 @@
                 const balances = form.querySelector("#balances").value.trim();
                 const uses = form.querySelector("#uses").value.trim();
                 const sideEffects = form.querySelector("#sideEffects").value.trim();
-
-                const extraInformation = form.querySelector("#extraInformation")?.value?.trim() || '';
 
                 const diseases = diseaseFields.map(field => ({
                     name: field.nameInput.value.trim(),
@@ -913,12 +967,12 @@
                     balances: balances,
                     uses: uses,
                     sideEffects: sideEffects,
-                    extraInformation: extraInformation,
                     anotherFields: anotherFieldsData,
                     timestamp: Timestamp.now()
                 };
 
-                const collectionPath = `/artifacts/${appId}/users/${userId}/drugs`;
+                // Use the correct collection path as used in the Flutter app
+                const collectionPath = 'drugs'; 
                 await addDoc(collection(db, collectionPath), drugData);
 
                 showMessage("Drug details successfully submitted!", "success");
@@ -947,8 +1001,8 @@
 
             } catch (err) {
                 console.error("Error submitting drug:", err);
-                if (err.message.includes('Firestore instance or user ID not available')) {
-                    showMessage('Permission denied. Please log in.', 'error');
+                if (err.message.includes('Firestore instance not available')) {
+                    showMessage('Database not available. Please check your Firebase configuration.', 'error');
                 } else if (err.code === 'permission-denied') {
                     showMessage('Permission denied. Please check your Firestore security rules.', 'error');
                 } else {
@@ -963,15 +1017,7 @@
 
         // --- Onload Initialization ---
         window.addEventListener('load', async () => {
-            try {
-                // Wait for the Firebase app to be initialized, which also sets up authentication.
-                await initializeFirebase();
-                // We no longer need to call onAuthStateChanged here as it's handled inside initializeFirebase.
-                fetchAndSetCategories();
-            } catch (err) {
-                console.error("Initialization failed:", err);
-                showMessage("Firebase initialization failed. Please check your connection.", "error");
-            }
+            await setupAuthCheck();
         });
 
         // --- Event Listeners for Dynamic Buttons ---
@@ -1002,6 +1048,7 @@
             const btn = document.getElementById('hamburgerBtn');
             const drawer = document.getElementById('drawerNav');
             const backdrop = document.getElementById('backdrop');
+            const logoutLink = document.getElementById('logoutLink');
 
             if (btn && drawer && backdrop) {
                 function openDrawer() {
@@ -1036,6 +1083,20 @@
                 drawer.addEventListener('click', (e) => {
                     if (e.target.closest('a[href]')) closeDrawer();
                 });
+
+                // Add logout functionality to the drawer
+                if (logoutLink) {
+                    logoutLink.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        try {
+                            await signOut(getAuth());
+                            console.log("User signed out successfully.");
+                            window.location.href = 'login.html';
+                        } catch (error) {
+                            console.error("Error signing out: ", error);
+                        }
+                    });
+                }
             } else {
                 console.error('Drawer elements not found. Check your HTML IDs.');
             }
