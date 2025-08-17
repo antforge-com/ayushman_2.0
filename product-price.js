@@ -402,12 +402,12 @@ async function checkStock() {
         // Normalize units for comparison: convert both to a common unit (e.g., grams)
         let stockInGrams = currentStock;
         if (data.quantityUnit === 'kg') {
-             stockInGrams = currentStock * 1000;
+             stockInGrams = stockInGrams * 1000;
         }
         
         let requiredInGrams = requiredQuantity;
         if (row.unit === 'kg') {
-             requiredInGrams = requiredQuantity * 1000;
+             requiredInGrams = requiredInGrams * 1000;
         }
         
         if (stockInGrams < requiredInGrams) {
@@ -489,8 +489,8 @@ async function handleCalculation(shouldSave) {
         if (materialRows.some(row => row.materialId === '')) {
             const errorHtml = `
                 <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;">
-                    <h4 style="font-weight:600;margin-bottom:0.5rem;">त्रुटि:</h4>
-                    <p>कृपया गणना करने से पहले प्रत्येक पंक्ति के लिए एक सामग्री चुनें।</p>
+                    <h4 style="font-weight:600;margin-bottom:0.5rem;">Error:</h4>
+                    <p>Please select a material for each row before calculating.</p>
                 </div>
             `;
             pricingResultsDiv.innerHTML = errorHtml;
@@ -506,7 +506,7 @@ async function handleCalculation(shouldSave) {
         if (!productName) {
             pricingResultsDiv.innerHTML = `
                 <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;text-align:center;">
-                    कृपया एक उत्पाद का नाम दर्ज करें।
+                    Please enter a product name.
                 </div>
             `;
             pricingResultsDiv.style.display = 'block';
@@ -516,7 +516,7 @@ async function handleCalculation(shouldSave) {
         if (numBottles <= 0) {
             pricingResultsDiv.innerHTML = `
                 <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;text-align:center;">
-                    कृपया बोतलों की एक मान्य संख्या (0 से अधिक) दर्ज करें।
+                    Please enter a valid number of bottles (greater than 0).
                 </div>
             `;
             pricingResultsDiv.style.display = 'block';
@@ -528,7 +528,7 @@ async function handleCalculation(shouldSave) {
             if (stockErrors.length > 0) {
                 const errorHtml = `
                     <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;">
-                        <h4 style="font-weight:600;margin-bottom:0.5rem;">स्टॉक जांच विफल:</h4>
+                        <h4 style="font-weight:600;margin-bottom:0.5rem;">Stock Check Failed:</h4>
                         <ul style="list-style-type:disc;padding-left:1.5rem;">
                             ${stockErrors.map(err => `<li>${err}</li>`).join('')}
                         </ul>
@@ -594,7 +594,7 @@ async function handleCalculation(shouldSave) {
 
     } catch (error) {
         console.error("Error during calculation/save:", error);
-        showMessage('गणना/सहेजना विफल रहा। कृपया पुनः प्रयास करें।', 'error');
+        showMessage('Calculation/save failed. Please try again.', 'error');
     } finally {
         buttonToDisable.disabled = false;
         if (loadingIndicator) loadingIndicator.classList.add('hidden');
