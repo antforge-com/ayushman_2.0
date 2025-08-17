@@ -561,10 +561,10 @@
         </div>
         <a href="index.html" class="drawer-link">Home</a>
         <a href="add-material.html" class="drawer-link">Add Material</a>
-        <a href="product-price.html" class="drawer-link active">Add Product</a>
+        <a href="product-price.html" class="drawer-link active">Add Product/Calculate</a>
         <a href="drug-entry.html" class="drawer-link">Add Drug</a>
-        <a href="all-materials.html" class="drawer-link">All Materials</a>
-        <a href="all-product-prices.html" class="drawer-link">All Product</a>
+        <a href="all-materials.html" class="drawer-link">Materials</a>
+        <a href="all-product-prices.html" class="drawer-link">Products</a>
         <a href="#" id="logoutLink" class="logout-link">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M16 9V17H12L12 19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7H12V9H16Z"
@@ -582,7 +582,7 @@
 
     <!-- Main Content -->
     <main class="main">
-        <h2 class="main-heading">Product Price Calculator</h2>
+        <h2 class="main-heading">Add Product/Calculate</h2>
         <div id="statusMessage" class="hidden message-box"></div>
 
         <!-- View All Prices Button (Redesigned) -->
@@ -645,10 +645,15 @@
                 <span style="font-weight:700;">Total Base Cost (Ingredients + Bottles):</span>
                 <span id="totalCost" style="font-weight:700;">₹0.00</span>
             </div>
-            <button class="btn btn-primary" id="calcBtn" style="width:100%;font-size:1.1rem;">
-                <span id="buttonText">Calculate & Save Price</span>
-                <div id="loadingIndicator" class="loading-spinner hidden"></div>
-            </button>
+            <div class="flex flex-col sm:flex-row gap-4 mt-6">
+                <button class="btn flex-1" id="calculateBtn">
+                    <span id="calculateButtonText">Calculate</span>
+                </button>
+                <button class="btn flex-1 btn-primary" id="calculateAndSaveBtn">
+                    <span id="saveButtonText">Calculate & Save</span>
+                    <div id="loadingIndicator" class="loading-spinner hidden"></div>
+                </button>
+            </div>
         </section>
 
         <h2 class="main-section-title">Pricing Calculations</h2>

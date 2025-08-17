@@ -11,10 +11,12 @@ const totalBottleCostSpan = document.getElementById('totalBottleCost');
 const totalCostSpan = document.getElementById('totalCost');
 const numBottlesInput = document.getElementById('numBottles');
 const costPerBottleInput = document.getElementById('costPerBottle');
-const calcBtn = document.getElementById('calcBtn');
+const calculateBtn = document.getElementById('calculateBtn'); // New button
+const calculateAndSaveBtn = document.getElementById('calculateAndSaveBtn'); // New button
 const pricingResultsDiv = document.getElementById('pricingResults');
 const statusMessageDiv = document.getElementById('statusMessage');
-const buttonText = document.getElementById('buttonText');
+const calculateButtonText = document.getElementById('calculateButtonText');
+const saveButtonText = document.getElementById('saveButtonText');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const viewAllPricesBtn = document.querySelector('.btn-view-prices');
 const productNameInput = document.getElementById('productNameInput');
@@ -469,146 +471,142 @@ function clearResults() {
     `;
 }
 
-
-// Calculate price when the button is clicked
-calcBtn.onclick = async () => {
-    // FIX: Clear all previous results and errors at the very beginning
+/**
+ * Handles the calculation and optional saving of product price.
+ * @param {boolean} shouldSave - A flag to determine if the result should be saved to Firestore.
+ */
+async function handleCalculation(shouldSave) {
     clearResults();
 
-    // Show loading state
-    calcBtn.disabled = true;
-    if (buttonText) buttonText.classList.add('hidden');
+    const buttonToDisable = shouldSave ? calculateAndSaveBtn : calculateBtn;
+    const loadingText = shouldSave ? saveButtonText : calculateButtonText;
+
+    buttonToDisable.disabled = true;
     if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+    if (loadingText) loadingText.classList.add('hidden');
     
-    // Check if any material is selected
-    if (materialRows.some(row => row.materialId === '')) {
-         const errorHtml = `
-            <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;">
-                <h4 style="font-weight:600;margin-bottom:0.5rem;">Error:</h4>
-                <p>Please select a material for each row before calculating.</p>
-            </div>
-        `;
-        pricingResultsDiv.innerHTML = errorHtml;
+    try {
+        if (materialRows.some(row => row.materialId === '')) {
+            const errorHtml = `
+                <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;">
+                    <h4 style="font-weight:600;margin-bottom:0.5rem;">त्रुटि:</h4>
+                    <p>कृपया गणना करने से पहले प्रत्येक पंक्ति के लिए एक सामग्री चुनें।</p>
+                </div>
+            `;
+            pricingResultsDiv.innerHTML = errorHtml;
+            pricingResultsDiv.style.display = 'block';
+            return;
+        }
+
+        const totalMaterial = materialRows.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+        const numBottles = +numBottlesInput.value;
+        const costPerBottle = +costPerBottleInput.value;
+        
+        const productName = productNameInput.value.trim();
+        if (!productName) {
+            pricingResultsDiv.innerHTML = `
+                <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;text-align:center;">
+                    कृपया एक उत्पाद का नाम दर्ज करें।
+                </div>
+            `;
+            pricingResultsDiv.style.display = 'block';
+            return;
+        }
+        
+        if (numBottles <= 0) {
+            pricingResultsDiv.innerHTML = `
+                <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;text-align:center;">
+                    कृपया बोतलों की एक मान्य संख्या (0 से अधिक) दर्ज करें।
+                </div>
+            `;
+            pricingResultsDiv.style.display = 'block';
+            return;
+        }
+        
+        if (shouldSave) {
+            const stockErrors = await checkStock();
+            if (stockErrors.length > 0) {
+                const errorHtml = `
+                    <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;">
+                        <h4 style="font-weight:600;margin-bottom:0.5rem;">स्टॉक जांच विफल:</h4>
+                        <ul style="list-style-type:disc;padding-left:1.5rem;">
+                            ${stockErrors.map(err => `<li>${err}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+                pricingResultsDiv.innerHTML = errorHtml;
+                pricingResultsDiv.style.display = 'block';
+                return;
+            }
+        }
+
+        const bottleCost = numBottles * costPerBottle;
+        const baseCost = totalMaterial + bottleCost;
+
+        const margin1 = baseCost * 1.13;
+        const margin2 = (baseCost + margin1) * 0.12;
+        const totalSellingPrice = baseCost + margin1 + margin2;
+        const grossPerBottle = totalSellingPrice / numBottles;
+
+        const resultBasePriceEl = document.getElementById('resultBasePrice');
+        const resultMargin1El = document.getElementById('resultMargin1');
+        const resultMargin2El = document.getElementById('resultMargin2');
+        const resultTotalPriceEl = document.getElementById('resultTotalPrice');
+        const resultPricePerBottleEl = document.getElementById('resultPricePerBottle');
+        
+        if (resultBasePriceEl) resultBasePriceEl.textContent = `₹${baseCost.toFixed(2)}`;
+        if (resultMargin1El) resultMargin1El.textContent = `₹${margin1.toFixed(2)}`;
+        if (resultMargin2El) resultMargin2El.textContent = `₹${margin2.toFixed(2)}`;
+        if (resultTotalPriceEl) resultTotalPriceEl.textContent = `₹${totalSellingPrice.toFixed(2)}`;
+        if (resultPricePerBottleEl) resultPricePerBottleEl.textContent = `₹${grossPerBottle.toFixed(2)}`;
+        
         pricingResultsDiv.style.display = 'block';
 
-        calcBtn.disabled = false;
-        if (buttonText) buttonText.classList.remove('hidden');
-        if (loadingIndicator) loadingIndicator.classList.add('hidden');
-        return;
-    }
-
-
-    const totalMaterial = materialRows.reduce((sum, r) => sum + (r.totalCost || 0), 0);
-    const numBottles = +numBottlesInput.value;
-    const costPerBottle = +costPerBottleInput.value;
-    
-    const productName = productNameInput.value.trim();
-    if (!productName) {
-        pricingResultsDiv.innerHTML = `
-            <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;text-align:center;">
-                Please enter a product name.
-            </div>
-        `;
-        pricingResultsDiv.style.display = 'block';
-        calcBtn.disabled = false;
-        if (buttonText) buttonText.classList.remove('hidden');
-        if (loadingIndicator) loadingIndicator.classList.add('hidden');
-        return;
-    }
-    
-
-    if (numBottles <= 0) {
-        pricingResultsDiv.innerHTML = `
-            <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;text-align:center;">
-                Please enter a valid number of bottles (greater than 0).
-            </div>
-        `;
-        pricingResultsDiv.style.display = 'block';
-        calcBtn.disabled = false;
-        if (buttonText) buttonText.classList.remove('hidden');
-        if (loadingIndicator) loadingIndicator.classList.add('hidden');
-        return;
-    }
-    
-    // Check for sufficient stock before proceeding
-    const stockErrors = await checkStock();
-
-    if (stockErrors.length > 0) {
-        const errorHtml = `
-            <div style="padding:1rem;background:#fee2e2;color:#991b1b;border-radius:8px;">
-                <h4 style="font-weight:600;margin-bottom:0.5rem;">Stock Check Failed:</h4>
-                <ul style="list-style-type:disc;padding-left:1.5rem;">
-                    ${stockErrors.map(err => `<li>${err}</li>`).join('')}
-                </ul>
-            </div>
-        `;
-        pricingResultsDiv.innerHTML = errorHtml;
-        pricingResultsDiv.style.display = 'block';
-
-        calcBtn.disabled = false;
-        if (buttonText) buttonText.classList.remove('hidden');
-        if (loadingIndicator) loadingIndicator.classList.add('hidden');
-        return;
-    }
-
-
-    const bottleCost = numBottles * costPerBottle;
-    const baseCost = totalMaterial + bottleCost;
-
-    const margin1 = baseCost * 1.13;
-    const margin2 = (baseCost + margin1) * 0.12;
-    const totalSellingPrice = baseCost + margin1 + margin2;
-    const grossPerBottle = totalSellingPrice / numBottles;
-
-    // Update the UI with the final results
-    // Ensure all elements exist before updating them
-    const resultBasePriceEl = document.getElementById('resultBasePrice');
-    const resultMargin1El = document.getElementById('resultMargin1');
-    const resultMargin2El = document.getElementById('resultMargin2');
-    const resultTotalPriceEl = document.getElementById('resultTotalPrice');
-    const resultPricePerBottleEl = document.getElementById('resultPricePerBottle');
-    
-    if (resultBasePriceEl) resultBasePriceEl.textContent = `₹${baseCost.toFixed(2)}`;
-    if (resultMargin1El) resultMargin1El.textContent = `₹${margin1.toFixed(2)}`;
-    if (resultMargin2El) resultMargin2El.textContent = `₹${margin2.toFixed(2)}`;
-    if (resultTotalPriceEl) resultTotalPriceEl.textContent = `₹${totalSellingPrice.toFixed(2)}`;
-    if (resultPricePerBottleEl) resultPricePerBottleEl.textContent = `₹${grossPerBottle.toFixed(2)}`;
-    
-    pricingResultsDiv.style.display = 'block';
-
-    const productData = {
-        name: productName, // Use the product name from the input field
-        materialsUsed: materialRows.map(row => {
-            const materialInfo = materials.find(m => m.id === row.materialId) || {};
-            return {
-                materialId: row.materialId,
-                materialName: materialInfo.material,
-                quantity: row.quantity,
-                unit: row.unit,
-                costPerUnit: row.costPerUnit,
-                totalCost: row.totalCost,
+        if (shouldSave) {
+            const productData = {
+                name: productName,
+                materialsUsed: materialRows.map(row => {
+                    const materialInfo = materials.find(m => m.id === row.materialId) || {};
+                    return {
+                        materialId: row.materialId,
+                        materialName: materialInfo.material,
+                        quantity: row.quantity,
+                        unit: row.unit,
+                        costPerUnit: row.costPerUnit,
+                        totalCost: row.totalCost,
+                    };
+                }),
+                bottleInfo: {
+                    numBottles: numBottles,
+                    costPerBottle: costPerBottle,
+                },
+                calculations: {
+                    baseCost: baseCost,
+                    margin1: margin1,
+                    margin2: margin2,
+                    totalSellingPrice: totalSellingPrice,
+                    grossPerBottle: grossPerBottle,
+                },
+                timestamp: Timestamp.now(),
             };
-        }),
-        bottleInfo: {
-            numBottles: numBottles,
-            costPerBottle: costPerBottle,
-        },
-        calculations: {
-            baseCost: baseCost,
-            margin1: margin1,
-            margin2: margin2,
-            totalSellingPrice: totalSellingPrice,
-            grossPerBottle: grossPerBottle,
-        },
-        timestamp: Timestamp.now(),
-    };
+            await saveProductPrice(productData);
+        }
 
-    await saveProductPrice(productData);
-    
-    calcBtn.disabled = false;
-    if (buttonText) buttonText.classList.remove('hidden');
-    if (loadingIndicator) loadingIndicator.classList.add('hidden');
-};
+    } catch (error) {
+        console.error("Error during calculation/save:", error);
+        showMessage('गणना/सहेजना विफल रहा। कृपया पुनः प्रयास करें।', 'error');
+    } finally {
+        buttonToDisable.disabled = false;
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
+        if (loadingText) loadingText.classList.remove('hidden');
+    }
+}
+
+
+// Event listeners for the new buttons
+calculateBtn.addEventListener('click', () => handleCalculation(false));
+calculateAndSaveBtn.addEventListener('click', () => handleCalculation(true));
+
 
 /**
  * Toggles the visibility of the drawer navigation and backdrop.

@@ -11,6 +11,16 @@ const closeDeleteModalBtn = document.getElementById('closeDeleteModalBtn');
 const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
 const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
+// New Search Modal Elements
+const searchBtn = document.getElementById('searchBtn');
+const searchModal = document.getElementById('searchModal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const searchOptions = document.getElementById('searchOptions');
+const searchByProductBtn = document.getElementById('searchByProductBtn');
+const searchByDateBtn = document.getElementById('searchByDateBtn');
+const productSearchForm = document.getElementById('productSearchForm');
+const dateSearchForm = document.getElementById('dateSearchForm');
+
 let unsubscribe = null; // Firestore listener के लिए unsubscribe function store करने के लिए variable.
 let selectedProductIdForDeletion = null;
 
@@ -224,6 +234,64 @@ const deleteProductPrice = async () => {
 confirmDeleteBtn.addEventListener('click', deleteProductPrice);
 closeDeleteModalBtn.addEventListener('click', () => deleteModal.classList.add('hidden'));
 cancelDeleteBtn.addEventListener('click', () => deleteModal.classList.add('hidden'));
+
+// Search Modal Listeners
+searchBtn.addEventListener('click', () => {
+    searchModal.classList.remove('hidden');
+});
+
+closeModalBtn.addEventListener('click', () => {
+    searchModal.classList.add('hidden');
+    // Hide search forms and show options again
+    searchOptions.classList.remove('hidden');
+    productSearchForm.classList.add('hidden');
+    dateSearchForm.classList.add('hidden');
+});
+
+searchByProductBtn.addEventListener('click', () => {
+    searchOptions.classList.add('hidden');
+    productSearchForm.classList.remove('hidden');
+});
+
+searchByDateBtn.addEventListener('click', () => {
+    searchOptions.classList.add('hidden');
+    dateSearchForm.classList.remove('hidden');
+});
+
+productSearchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const productName = document.getElementById('productName').value.trim();
+    const user = auth.currentUser;
+    if (user) {
+        const searchQueries = productName ? [where('name', '==', productName)] : [];
+        setupProductPriceListener(user.uid, searchQueries);
+        searchModal.classList.add('hidden');
+    }
+});
+
+dateSearchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const purchaseDateStr = document.getElementById('purchaseDate').value;
+    const user = auth.currentUser;
+    if (purchaseDateStr && user) {
+        const startDate = new Date(purchaseDateStr);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(purchaseDateStr);
+        endDate.setHours(23, 59, 59, 999);
+        
+        const searchQueries = [
+            where('timestamp', '>=', Timestamp.fromDate(startDate)),
+            where('timestamp', '<=', Timestamp.fromDate(endDate))
+        ];
+        setupProductPriceListener(user.uid, searchQueries);
+        searchModal.classList.add('hidden');
+    } else if (user) {
+        // If date is empty, reload all data
+        setupProductPriceListener(user.uid);
+        searchModal.classList.add('hidden');
+    }
+});
+
 
 // Drawer toggle logic (reused from other pages)
 document.addEventListener('DOMContentLoaded', () => {

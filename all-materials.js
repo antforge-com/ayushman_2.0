@@ -123,7 +123,14 @@ const getLatestMaterials = (materials) => {
             latest[item.material] = item;
         }
     });
-    return Object.values(latest);
+    const sortedLatestMaterials = Object.values(latest).sort((a, b) => {
+        const materialA = a.material ? a.material.toLowerCase() : '';
+        const materialB = b.material ? b.material.toLowerCase() : '';
+        if (materialA < materialB) return -1;
+        if (materialA > materialB) return 1;
+        return 0;
+    });
+    return sortedLatestMaterials;
 };
 
 

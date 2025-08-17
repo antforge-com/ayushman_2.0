@@ -96,26 +96,30 @@ function calculatePrices() {
     // Only perform calculations if it's not a new material.
     // New materials' stock is entered manually first, but cost is always calculated.
     if (!isNewMaterial) {
-        // Calculate the new total stock
-        let newTotalStock = 0;
-        // Normalize previous stock to the current purchase unit for calculation
+        // Normalize previous stock and previous cost to the current purchase unit for calculation
         let normalizedPreviousStock = previousStock;
+        let normalizedPreviousCostPerUnit = previousCostPerUnit;
+
         if (purchaseUnit !== previousUnit) {
             if (purchaseUnit === 'kg' && previousUnit === 'gram') {
                 normalizedPreviousStock = previousStock / 1000;
+                normalizedPreviousCostPerUnit = previousCostPerUnit * 1000; // Correct conversion for cost
             } else if (purchaseUnit === 'gram' && previousUnit === 'kg') {
                 normalizedPreviousStock = previousStock * 1000;
+                normalizedPreviousCostPerUnit = previousCostPerUnit / 1000; // Correct conversion for cost
             }
         }
-        newTotalStock = normalizedPreviousStock + purchaseQuantity;
+
+        // Calculate the new total stock
+        const newTotalStock = normalizedPreviousStock + purchaseQuantity;
         stockInput.value = newTotalStock.toFixed(4);
         
         // Calculate the new weighted average cost per unit
         let newCostPerUnit = 0;
         if (newTotalStock > 0) {
             // Calculate total value of previous stock and new purchase
-            const previousTotalValue = normalizedPreviousStock * previousCostPerUnit;
-            const purchaseTotalValue = purchaseQuantity * pricePerUnitInput.value;
+            const previousTotalValue = normalizedPreviousStock * normalizedPreviousCostPerUnit; // Use normalized cost
+            const purchaseTotalValue = purchaseQuantity * purchasePricePerUnit;
             newCostPerUnit = (previousTotalValue + purchaseTotalValue) / newTotalStock;
         }
         updatedCostPerUnitInput.value = newCostPerUnit.toFixed(6);
@@ -228,7 +232,6 @@ async function handleMaterialInputBlur() {
             document.getElementById('quantityUnit').value = 'kg';
             minQuantityInput.value = 0;
             minQuantityUnitSelect.value = 'kg';
-            
             previousStock = 0;
             previousCostPerUnit = 0;
             previousUnit = 'kg';
@@ -238,212 +241,228 @@ async function handleMaterialInputBlur() {
             updatedCostPerUnitInput.setAttribute('readonly', 'true');
             stockInput.value = '';
             updatedCostPerUnitInput.value = '';
-
             showMessage('This is a new material. Please enter initial stock and cost per unit manually.', 'info');
         }
     }
 }
 
-
 // Event listeners
 materialInput.addEventListener('blur', handleMaterialInputBlur);
 quantityInput.addEventListener('input', calculatePrices);
-quantityUnitSelect.addEventListener('change', updatePriceLabel);
 pricePerUnitInput.addEventListener('input', calculatePrices);
+quantityUnitSelect.addEventListener('change', updatePriceLabel);
 fileInput.addEventListener('change', handleFileSelect);
 
-
+// Handle form submission
 materialForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const form = e.target;
-    const button = form.querySelector('.btn');
     const buttonText = document.getElementById('buttonText');
     const loadingIndicator = document.getElementById('loadingIndicator');
 
-    button.disabled = true;
-    buttonText.classList.add('hidden');
+    buttonText.style.display = 'none';
     loadingIndicator.classList.remove('hidden');
 
     try {
         await initializeFirebase();
-        
-        // Get data from the form
-        const existingMaterialId = materialIdInput.value;
-        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
-        
-        // Final calculation before saving
-        calculatePrices();
+        if (!db || !userId) {
+            showMessage("Error: User not authenticated. Please log in.", "error");
+            return;
+        }
 
-        let dataToSave = {
-            material: form.material.value.trim(),
-            dealer: form.dealer.value || null,
-            gstNumber: form.gstNumber.value || null,
-            description: form.description.value || null,
-            quantity: parseFloat(form.quantity.value),
-            quantityUnit: form.quantityUnit.value,
-            pricePerUnit: parseFloat(form.pricePerUnit.value),
-            price: parseFloat(priceInput.value),
-            gst: parseFloat(form.gst.value),
-            hamali: parseFloat(form.hamali.value),
-            transportation: parseFloat(form.transportation.value),
-            minQuantity: parseFloat(minQuantityInput.value),
-            minQuantityUnit: minQuantityUnitSelect.value,
-            // These fields are either calculated or manually entered based on `isNewMaterial`
-            stock: parseFloat(stockInput.value),
-            updatedCostPerUnit: parseFloat(updatedCostPerUnitInput.value),
+        const materialName = materialInput.value.trim();
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const purchasePricePerUnit = parseFloat(pricePerUnitInput.value) || 0;
+        const totalPurchasePrice = parseFloat(priceInput.value) || 0;
+        const quantityUnit = quantityUnitSelect.value;
+        const dealer = document.getElementById('dealer').value.trim();
+        const gstNumber = document.getElementById('gstNumber').value.trim();
+        const updatedStock = parseFloat(stockInput.value) || 0;
+        const updatedCostPerUnit = parseFloat(updatedCostPerUnitInput.value) || 0;
+        const minQuantity = parseFloat(minQuantityInput.value) || 0;
+        const minQuantityUnit = minQuantityUnitSelect.value;
+        let billPhotoUrl = null;
+
+        if (!materialName || !quantity || !purchasePricePerUnit) {
+            showMessage("Please fill in all required fields (Material, Quantity, Price).", "error");
+            return;
+        }
+
+        const newPurchaseDoc = {
+            material: materialName,
+            timestamp: Timestamp.now(),
+            quantity: quantity,
+            quantityUnit: quantityUnit,
+            pricePerUnit: purchasePricePerUnit,
+            totalPrice: totalPurchasePrice,
+            dealer: dealer,
+            gstNumber: gstNumber,
+            // The following two fields are the *new* calculated values for the material
+            stock: updatedStock,
+            updatedCostPerUnit: updatedCostPerUnit,
+            minQuantity: minQuantity,
+            minQuantityUnit: minQuantityUnit
         };
 
-        // If it's a new material, the purchase quantity is the initial stock
-        if (isNewMaterial) {
-             dataToSave.stock = parseFloat(form.quantity.value);
-             dataToSave.updatedCostPerUnit = parseFloat(form.pricePerUnit.value);
-        }
-
-        let billPhotoUrl = currentBillPhotoUrl;
+        // Handle photo upload
         const file = fileInput.files[0];
         if (file) {
-            const storage = getStorage();
-            const storageRef = ref(storage, `user-uploads/${userId}/bills/${Timestamp.now().toMillis()}_${file.name}`);
-            const uploadTask = await uploadBytes(storageRef, file);
-            billPhotoUrl = await getDownloadURL(uploadTask.ref);
-            showMessage('Bill photo uploaded successfully!', 'info');
-            dataToSave.billPhotoUrl = billPhotoUrl;
+            const fileExtension = file.name.split('.').pop();
+            const storageRef = ref(getStorage(), `bills/${materialName}-${Date.now()}.${fileExtension}`);
+            await uploadBytes(storageRef, file);
+            billPhotoUrl = await getDownloadURL(storageRef);
+            newPurchaseDoc.billPhotoUrl = billPhotoUrl;
+        } else if (currentBillPhotoUrl) {
+            // Retain the existing photo URL if no new file is uploaded
+            newPurchaseDoc.billPhotoUrl = currentBillPhotoUrl;
         }
 
-        if (!existingMaterialId) {
-            // This is a new purchase, so always add a new document
-            dataToSave.timestamp = Timestamp.now();
-            await addDoc(collection(db, collectionPath), dataToSave);
-            showMessage('New material added successfully!', 'success');
-            form.reset();
-            priceInput.value = '';
-            stockInput.value = '';
-            updatedCostPerUnitInput.value = '';
-            handleFileSelect();
-            // Reset previous values for the next entry
-            previousStock = 0;
-            previousCostPerUnit = 0;
-            previousUnit = 'kg';
-            isNewMaterial = false;
-            // Restore readonly attributes after successful submission of a new item
-            stockInput.setAttribute('readonly', 'true');
-            updatedCostPerUnitInput.setAttribute('readonly', 'true');
-        } else {
-            // This is edit mode (came from the URL), so update the existing document
-            dataToSave.updatedAt = Timestamp.now();
-            await updateDoc(doc(db, collectionPath, existingMaterialId), dataToSave);
-            showMessage('Material updated successfully!', 'success');
-            window.location.href = 'all-materials.html';
-        }
+        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
+        await addDoc(collection(db, collectionPath), newPurchaseDoc);
+
+        showMessage("Purchase added successfully!", "success");
+        materialForm.reset();
+        isNewMaterial = true; // Reset the flag for the next entry
+        handleFileSelect(); // Reset the file preview
+        updatedCostPerUnitInput.value = '';
+        stockInput.value = '';
+        stockInput.removeAttribute('readonly');
+        materialIdInput.value = '';
+        formTitle.textContent = "Add Material";
+        formButtonText.textContent = "+ Add Purchase";
 
     } catch (error) {
-        console.error("Error submitting document: ", error);
-        if (error.code === 'permission-denied') {
-            showMessage('Permission denied. Please check your Firestore security rules.', 'error');
-        } else {
-            showMessage('Failed to submit material. Please check the form and try again.', 'error');
-        }
+        console.error("Error adding purchase:", error);
+        showMessage("An error occurred while adding the purchase. Please try again.", "error");
     } finally {
-        button.disabled = false;
-        buttonText.classList.remove('hidden');
+        buttonText.style.display = 'block';
         loadingIndicator.classList.add('hidden');
     }
 });
 
+// Logic for editing a material
+const urlParams = new URLSearchParams(window.location.search);
+const materialIdFromUrl = urlParams.get('materialId');
 
-// Page load logic
-window.addEventListener('load', async () => {
-    try {
-        await initializeFirebase();
-        
-        // Check for a materialId from the URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const editId = urlParams.get('editId');
-        
-        if (editId) {
-            loadMaterialForEdit(editId);
-        } else {
-            // New entry mode
-            document.getElementById('materialId').value = '';
-            formTitle.textContent = "Add New Material";
-            formButtonText.textContent = "+ Add Purchase";
-            viewAllPurchasesBtn.style.display = 'inline-flex';
+if (materialIdFromUrl) {
+    // This is an edit operation
+    formTitle.textContent = "Edit Material";
+    formButtonText.textContent = "Update Material";
+    stockInput.removeAttribute('readonly');
+    updatedCostPerUnitInput.removeAttribute('readonly');
+    viewAllPurchasesBtn.style.display = 'none';
+
+    // Fetch and pre-fill data for editing
+    async function fetchMaterialForEdit(docId) {
+        try {
+            await initializeFirebase();
+            const docRef = doc(db, `/artifacts/${appId}/users/${userId}/materials`, docId);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                materialIdInput.value = docId;
+                materialInput.value = data.material || '';
+                quantityInput.value = data.quantity || 0;
+                quantityUnitSelect.value = data.quantityUnit || 'kg';
+                pricePerUnitInput.value = data.pricePerUnit || 0;
+                priceInput.value = data.totalPrice || 0;
+                document.getElementById('dealer').value = data.dealer || '';
+                document.getElementById('gstNumber').value = data.gstNumber || '';
+                stockInput.value = data.stock || 0;
+                updatedCostPerUnitInput.value = data.updatedCostPerUnit || 0;
+                minQuantityInput.value = data.minQuantity !== undefined ? data.minQuantity : 0;
+                minQuantityUnitSelect.value = data.minQuantityUnit || 'kg';
+                currentBillPhotoUrl = data.billPhotoUrl || null;
+
+                // Handle file preview
+                handleFileSelect();
+            } else {
+                showMessage("No such material found for editing.", "error");
+            }
+        } catch (error) {
+            console.error("Error fetching material for edit:", error);
+            showMessage("Error fetching data for editing.", "error");
         }
-        
-        // Initial state for new entry
-        stockInput.setAttribute('readonly', 'true');
-        updatedCostPerUnitInput.setAttribute('readonly', 'true');
-        isNewMaterial = false;
-
-    } catch (err) {
-        console.error("Initialization failed:", err);
-        showMessage("Firebase initialization failed. Please check your connection.", "error");
     }
-});
 
-// Populates the form with data for editing.
-async function loadMaterialForEdit(materialId) {
-    try {
-        await initializeFirebase();
-        if (!db || !userId) {
-            throw new Error("User is not authenticated. Cannot load data.");
-        }
+    fetchMaterialForEdit(materialIdFromUrl);
 
-        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
-        const materialDocRef = doc(db, collectionPath, materialId);
-        const materialDoc = await getDoc(materialDocRef);
+    // Update the form submission logic for editing
+    materialForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-        if (materialDoc.exists()) {
-            const data = materialDoc.data();
-            materialIdInput.value = materialId;
-            formTitle.textContent = "Edit Material Purchase";
-            formButtonText.textContent = "Update Purchase";
-            viewAllPurchasesBtn.style.display = 'none';
-            isNewMaterial = false;
+        const buttonText = document.getElementById('buttonText');
+        const loadingIndicator = document.getElementById('loadingIndicator');
 
-            // Populate form fields for editing
-            document.getElementById('material').value = data.material || '';
-            document.getElementById('dealer').value = data.dealer || '';
-            document.getElementById('gstNumber').value = data.gstNumber || '';
-            document.getElementById('description').value = data.description || '';
-            document.getElementById('quantity').value = data.quantity || '';
-            document.getElementById('quantityUnit').value = data.quantityUnit || 'kg';
-            document.getElementById('pricePerUnit').value = data.pricePerUnit || '';
-            document.getElementById('price').value = data.price || '';
-            document.getElementById('gst').value = data.gst || 0;
-            document.getElementById('hamali').value = data.hamali || 0;
-            document.getElementById('transportation').value = data.transportation || 0;
+        buttonText.style.display = 'none';
+        loadingIndicator.classList.remove('hidden');
+
+        try {
+            await initializeFirebase();
+            if (!db || !userId) {
+                showMessage("Error: User not authenticated. Please log in.", "error");
+                return;
+            }
+
+            const docId = materialIdInput.value;
+            if (!docId) {
+                showMessage("Error: No document ID found for update.", "error");
+                return;
+            }
+
+            const materialName = materialInput.value.trim();
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const pricePerUnit = parseFloat(pricePerUnitInput.value) || 0;
+            const totalPrice = parseFloat(priceInput.value) || 0;
+            const quantityUnit = quantityUnitSelect.value;
+            const dealer = document.getElementById('dealer').value.trim();
+            const gstNumber = document.getElementById('gstNumber').value.trim();
+            const stock = parseFloat(stockInput.value) || 0;
+            const updatedCostPerUnit = parseFloat(updatedCostPerUnitInput.value) || 0;
+            const minQuantity = parseFloat(minQuantityInput.value) || 0;
+            const minQuantityUnit = minQuantityUnitSelect.value;
             
-            // Populate new minimum quantity field
-            minQuantityInput.value = data.minQuantity !== undefined ? data.minQuantity : 0;
-            minQuantityUnitSelect.value = data.minQuantityUnit || 'kg';
-            
-            // These fields are calculated, so we just display the saved values in edit mode
-            document.getElementById('stock').value = data.stock || '';
-            document.getElementById('updatedCostPerUnit').value = data.updatedCostPerUnit || '';
+            const updatedData = {
+                material: materialName,
+                quantity: quantity,
+                quantityUnit: quantityUnit,
+                pricePerUnit: pricePerUnit,
+                totalPrice: totalPrice,
+                dealer: dealer,
+                gstNumber: gstNumber,
+                stock: stock,
+                updatedCostPerUnit: updatedCostPerUnit,
+                minQuantity: minQuantity,
+                minQuantityUnit: minQuantityUnit
+            };
 
-            // Ensure stock and cost fields are readonly in edit mode
-            stockInput.setAttribute('readonly', 'true');
-            updatedCostPerUnitInput.setAttribute('readonly', 'true');
+            const file = fileInput.files[0];
+            if (file) {
+                const fileExtension = file.name.split('.').pop();
+                const storageRef = ref(getStorage(), `bills/${materialName}-${Date.now()}.${fileExtension}`);
+                await uploadBytes(storageRef, file);
+                updatedData.billPhotoUrl = await getDownloadURL(storageRef);
+            } else if (currentBillPhotoUrl) {
+                updatedData.billPhotoUrl = currentBillPhotoUrl;
+            }
 
-            currentBillPhotoUrl = data.billPhotoUrl || null;
-            handleFileSelect();
-            updatePriceLabel();
-        } else {
-            showMessage("Material not found for editing.", 'error');
-            materialIdInput.value = '';
-            materialForm.reset();
+            const docRef = doc(db, `/artifacts/${appId}/users/${userId}/materials`, docId);
+            await updateDoc(docRef, updatedData);
+
+            showMessage("Material updated successfully!", "success");
+
+        } catch (error) {
+            console.error("Error updating material:", error);
+            showMessage("An error occurred while updating the material. Please try again.", "error");
+        } finally {
+            buttonText.style.display = 'block';
+            loadingIndicator.classList.add('hidden');
         }
-    } catch (error) {
-        console.error("Error loading material for edit:", error);
-        showMessage("Error loading material for editing. Please try again.", 'error');
-        materialIdInput.value = '';
-    }
+    });
 }
 
-
-// Drawer toggle logic (reused from other pages)
+// Navigation drawer logic
 document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('hamburgerBtn');
     const drawer = document.getElementById('drawerNav');

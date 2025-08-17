@@ -190,6 +190,31 @@
             opacity: 1;
             visibility: visible;
         }
+        
+        /* Logout Link */
+        .logout-link {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #ef4444;
+            font-weight: 600;
+            padding: 12px 18px;
+            border-left: 4px solid transparent;
+            transition: background .2s ease, border-left-color .2s ease;
+        }
+        
+        .logout-link:hover {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+
+        .logout-link svg {
+            width: 24px;
+            height: 24px;
+            fill: #ef4444;
+        }
+
 
         /* Main layout and form container */
         .main {
@@ -212,9 +237,11 @@
 
         .control-buttons {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
+            gap: 1rem;
         }
 
         .btn {
@@ -222,21 +249,34 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            padding: 0.6rem 1.4rem;
-            border-radius: 6px;
-            border: 1px solid var(--accent);
-            background: #e6f7e7;
-            color: var(--primary);
+            padding: 0.8rem 1.6rem;
+            border-radius: 8px;
+            border: 1px solid var(--primary);
+            background: var(--primary);
+            color: white;
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.2s ease, transform 0.1s ease;
-        }
-
-        .btn:hover {
-            background-color: #d1e8d2;
-            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-outline:hover {
+            background: #f0fdf4;
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-600);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
         .message-box {
             text-align: center;
             padding: 2rem;
@@ -252,16 +292,127 @@
             border-radius: 8px;
         }
 
+        .message-success {
+            color: #22c55e;
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
         .message-info {
             color: #1e40af;
             background: #eff6ff;
             border-left: 4px solid #1e40af;
+            padding: 1rem;
+            border-radius: 8px;
         }
         
         .hidden {
             display: none;
         }
 
+        /* Search modal styling */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 500;
+        }
+        
+        .modal-content {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 450px;
+            position: relative;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+        
+        .modal-header h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--muted);
+        }
+
+        .search-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .search-btn {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .search-btn:hover {
+            background: var(--primary-600);
+        }
+
+        .search-option-btn {
+            padding: 0.75rem;
+            border: 1px solid var(--accent);
+            background: #f0fdf4;
+            color: var(--primary);
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .search-option-btn:hover {
+            background-color: var(--accent);
+            color: white;
+        }
+        
         /* New styles for expandable list */
         .price-card {
             background: #fefefe;
@@ -366,7 +517,6 @@
         .delete-btn:hover {
             color: #dc2626;
         }
-
 
         /* Delete Confirmation Modal */
         .modal {
@@ -490,11 +640,21 @@
             <img src="assets/vasavi-logo.png" onerror="this.onerror=null; this.src='https://placehold.co/80x40/e5e7eb/6b7280?text=Logo'" alt="Vasavi Ayurveda Logo">
         </div>
         <a href="index.html" class="drawer-link">Home</a>
-        <a href="add-material.html" class="drawer-link">Add Material</a>
-        <a href="product-price.html" class="drawer-link">Add Product</a>
+        <a href="add-material.html" class="drawer-link">Materials</a>
+        <a href="product-price.html" class="drawer-link">Add Product/Calculate</a>
         <a href="drug-entry.html" class="drawer-link">Add Drug</a>
-        <a href="all-materials.html" class="drawer-link">All Materials</a>
-        <a href="all-product-prices.html" class="drawer-link active">All Products</a>
+        <a href="all-materials.html" class="drawer-link">Materials</a>
+        <a href="all-product-prices.html" class="drawer-link active">All Product</a>
+        <a href="#" id="logoutLink" class="logout-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 9V17H12L12 19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7H12V9H16Z"
+                    fill="currentColor" />
+                <path
+                    d="M9 14V12H2V14H9ZM9 12V14L12 11L9 8V10H2V12H9ZM9 12H11.5L9 9.5V12ZM9 12L11.5 14.5V12L9 9.5V12ZM16 7H12V9H16V17H12V19H16C17.1046 19 18 18.1046 18 17V9C18 7.89543 17.1046 7 16 7Z"
+                    fill="currentColor" />
+            </svg>
+            Logout
+        </a>
     </nav>
 
     <!-- Backdrop -->
@@ -504,15 +664,48 @@
     <main class="main">
         <h2 class="main-heading">All Product Prices</h2>
         <div class="control-buttons">
-            <a href="product-price.html" class="btn">
+            <a href="product-price.html" class="btn btn-outline">
                 <i class="fa-solid fa-arrow-left"></i>
                 Calculate New Price
             </a>
-            <!-- Search functionality can be added here later -->
+            <button id="searchBtn" class="btn btn-primary">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                Search
+            </button>
         </div>
 
         <!-- Message container for status -->
         <div id="statusMessage" class="hidden message-box"></div>
+        
+        <!-- Search Modal -->
+        <div id="searchModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Search Products</h3>
+                    <button id="closeModalBtn" class="close-btn">&times;</button>
+                </div>
+                <div id="searchOptions" class="search-options">
+                    <button class="search-option-btn" id="searchByProductBtn">Search by Product Name</button>
+                    <button class="search-option-btn" id="searchByDateBtn">Search by Date</button>
+                </div>
+
+                <form id="productSearchForm" class="hidden mt-4">
+                    <div class="form-group">
+                        <label for="productName">Product Name</label>
+                        <input type="text" id="productName" placeholder="Enter product name" class="rounded-lg">
+                    </div>
+                    <button type="submit" class="search-btn">Search</button>
+                </form>
+
+                <form id="dateSearchForm" class="hidden mt-4">
+                    <div class="form-group">
+                        <label for="purchaseDate">Calculation Date</label>
+                        <input type="date" id="purchaseDate" class="rounded-lg">
+                    </div>
+                    <button type="submit" class="search-btn">Search</button>
+                </form>
+            </div>
+        </div>
         
         <!-- Delete Confirmation Modal -->
         <div id="deleteModal" class="modal hidden">
