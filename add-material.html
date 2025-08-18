@@ -513,7 +513,7 @@
         <a href="index.html" class="drawer-link">Home</a>
         <a href="add-material.html" class="drawer-link active">Add Material</a>
         <a href="product-price.html" class="drawer-link">Add Product/Calculate</a>
-        <a href="drug-entry.html" class="drawer-link">Add Drug</a>
+        <a href="drug-entry.html" class="drawer-link" id="drugEntryLink">Add Drug</a>
         <a href="all-materials.html" class="drawer-link">Materials</a>
         <a href="all-product-prices.html" class="drawer-link">Products</a>
         <a href="#" id="logoutLink" class="logout-link">
@@ -635,6 +635,57 @@
 
     <!-- Firebase and Form Logic -->
     <script type="module" src="add-material.js"></script>
+
+    <!-- Script to check user role and hide Add Drug link -->
+    <script type="module">
+        import { initializeFirebase, auth, db, getDoc, doc } from "./firebase-config.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // Check the user's role and conditionally show/hide the 'Add Drug' link
+        async function checkUserRole(uid) {
+            try {
+                if (!db) {
+                    console.error("Firestore not initialized.");
+                    return;
+                }
+                const userDocRef = doc(db, "userRoles", uid);
+                const userRoleSnap = await getDoc(userDocRef);
+
+                const drugEntryLink = document.getElementById('drugEntryLink');
+                
+                if (userRoleSnap.exists()) {
+                    const role = userRoleSnap.data().role;
+                    if (role !== 'admin') {
+                        if (drugEntryLink) drugEntryLink.style.display = 'none';
+                    } else {
+                        if (drugEntryLink) drugEntryLink.style.display = 'block';
+                    }
+                } else {
+                    // Default to non-admin if no role is found
+                    if (drugEntryLink) drugEntryLink.style.display = 'none';
+                }
+            } catch (error) {
+                console.error("Error fetching user role:", error);
+                // Hide link in case of an error to be safe
+                const drugEntryLink = document.getElementById('drugEntryLink');
+                if (drugEntryLink) drugEntryLink.style.display = 'none';
+            }
+        }
+
+        async function setupAuthCheck() {
+            await initializeFirebase();
+            onAuthStateChanged(auth, (user) => {
+                if (!user) {
+                    console.log("No user found, redirecting to login page.");
+                    window.location.href = 'login.html';
+                } else {
+                    console.log("User found, checking role.");
+                    checkUserRole(user.uid);
+                }
+            });
+        }
+        window.onload = setupAuthCheck;
+    </script>
 </body>
 
 </html>

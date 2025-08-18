@@ -435,7 +435,7 @@
         .message-error {
             color: #872a2a;
             background: #f9e6e7;
-            border-left: 4px solid #872a2a;
+            border-left: 44px solid #872a2a;
         }
 
         .message-info {
@@ -488,7 +488,7 @@
         <a href="index.html" class="drawer-link">Home</a>
         <a href="add-material.html" class="drawer-link">Add Material</a>
         <a href="product-price.html" class="drawer-link">Add Product/Calculate</a>
-        <a href="drug-entry.html" class="drawer-link active">Add Drug</a>
+        <a href="drug-entry.html" class="drawer-link active" id="drugEntryLink">Add Drug</a>
         <a href="all-materials.html" class="drawer-link">Materials</a>
         <a href="all-product-prices.html" class="drawer-link">Products</a>
         <a href="#" id="logoutLink" class="logout-link">
@@ -607,6 +607,7 @@
     <script type="module">
         import { db, userId, appId, initializeFirebase, collection, addDoc, getDocs, Timestamp } from "./firebase-config.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // Pre-defined categories
         let _allCategories = [
@@ -641,17 +642,48 @@
             msgDiv.classList.add('hidden');
         }
 
-        // --- Authentication Check ---
+        // --- Authentication Check and Role Check ---
+        async function checkUserRole(uid) {
+            try {
+                if (!db) {
+                    console.error("Firestore not initialized.");
+                    // Redirect non-admin if database isn't ready
+                    window.location.href = 'index.html';
+                    return;
+                }
+                const userDocRef = doc(db, "userRoles", uid);
+                const userRoleSnap = await getDoc(userDocRef);
+
+                if (userRoleSnap.exists()) {
+                    const role = userRoleSnap.data().role;
+                    if (role !== 'admin') {
+                        console.log("Non-admin user trying to access admin page, redirecting.");
+                        window.location.href = 'index.html';
+                    } else {
+                        console.log("Admin user confirmed, showing Add Drug page.");
+                        fetchAndSetCategories();
+                    }
+                } else {
+                    // Default to non-admin if no role is found
+                    console.log("User role not found, redirecting.");
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error("Error fetching user role:", error);
+                // Redirect in case of an error to be safe
+                window.location.href = 'index.html';
+            }
+        }
+
         async function setupAuthCheck() {
             try {
                 await initializeFirebase();
                 onAuthStateChanged(getAuth(), (user) => {
-                    if (!user) {
+                    if (user) {
+                        checkUserRole(user.uid);
+                    } else {
                         console.log("No user found, redirecting to login page.");
                         window.location.href = 'login.html';
-                    } else {
-                        console.log("User found, loading page content.");
-                        fetchAndSetCategories();
                     }
                 });
             } catch (err) {
@@ -665,8 +697,8 @@
         async function fetchAndSetCategories() {
             try {
                 await initializeFirebase();
-                if (!db || !userId) {
-                    throw new Error("Firestore instance or user ID not available, cannot fetch categories.");
+                if (!db) {
+                    throw new Error("Firestore instance not available, cannot fetch categories.");
                 }
                 const fetchedCategoriesSet = new Set(_allCategories);
                 const collectionPath = 'drugs'; 
