@@ -53,7 +53,8 @@ function showMessage(message, type) {
 async function fetchMaterials(currentUserId) {
     console.log('fetchMaterials: Attempting to fetch materials...');
     try {
-        const collectionPath = `/artifacts/${appId}/users/${currentUserId}/materials`;
+        // FIX: सीधे user-specific collection path का उपयोग करें
+        const collectionPath = `artifacts/${appId}/users/${currentUserId}/materials`;
         const materialsCollectionRef = collection(db, collectionPath);
         
         // Fetch all material purchases and sort them by timestamp
@@ -285,7 +286,8 @@ async function saveProductPrice(productData) {
             throw new Error("User is not authenticated. Please log in and try again.");
         }
         
-        const collectionPath = `/artifacts/${appId}/users/${auth.currentUser.uid}/products`;
+        // FIX: सीधे user-specific collection path का उपयोग करें
+        const collectionPath = `artifacts/${appId}/users/${auth.currentUser.uid}/products`;
         await addDoc(collection(db, collectionPath), productData);
 
         // Deduct stock after successful calculation and saving
@@ -312,11 +314,11 @@ async function deductStock() {
         if (!auth.currentUser) {
             throw new Error("User is not authenticated.");
         }
+        // FIX: सीधे user-specific collection path का उपयोग करें
+        const collectionPath = `artifacts/${appId}/users/${auth.currentUser.uid}/materials`;
 
         const updates = materialRows.map(async (row) => {
             if (!row.materialId) return; // Skip empty rows
-
-            const collectionPath = `/artifacts/${appId}/users/${auth.currentUser.uid}/materials`;
             
             // Find the most recent material record using materialId
             const materialItem = materials.find(m => m.id === row.materialId);
@@ -372,6 +374,9 @@ async function deductStock() {
  * @returns {Promise<string[]>} An array of error messages for insufficient stock, or an empty array if all is well.
  */
 async function checkStock() {
+    // FIX: सीधे user-specific collection path का उपयोग करें
+    const collectionPath = `artifacts/${appId}/users/${auth.currentUser.uid}/materials`;
+
     const stockPromises = materialRows.map(async (row) => {
         if (!row.materialId) {
             return null; // Skip if no material is selected for this row
@@ -384,7 +389,7 @@ async function checkStock() {
         }
 
         const q = query(
-            collection(db, `/artifacts/${appId}/users/${auth.currentUser.uid}/materials`),
+            collection(db, collectionPath),
             where('material', '==', latestMaterials[materialItem.material].material),
             orderBy('timestamp', 'desc'),
             limit(1)

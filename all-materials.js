@@ -73,8 +73,9 @@ const setupAuthCheck = async () => {
  * वर्तमान उपयोगकर्ता के लिए materials collection पर एक real-time listener सेट करता है।
  * @param {string} currentUserId - वर्तमान में login हुए उपयोगकर्ता का ID.
  * @param {object} optionalQuery - एक वैकल्पिक Firestore query जो एक filter लागू करने के लिए है।
+ * @param {string} searchMaterialName - Case-insensitive search के लिए material का नाम.
  */
-const setupMaterialListener = (currentUserId, optionalQuery = []) => {
+const setupMaterialListener = (currentUserId, optionalQuery = [], searchMaterialName = null) => {
     if (unsubscribe) {
         unsubscribe(); // पिछले listener से unsubscribe करें
     }
@@ -85,7 +86,8 @@ const setupMaterialListener = (currentUserId, optionalQuery = []) => {
         return;
     }
 
-    const collectionPath = `/artifacts/${appId}/users/${currentUserId}/materials`;
+    // FIX: सीधे user-specific collection path का उपयोग करें
+    const collectionPath = `artifacts/${appId}/users/${currentUserId}/materials`;
     let baseQuery = collection(db, collectionPath);
     let finalQuery = query(baseQuery, ...optionalQuery);
     
@@ -94,16 +96,23 @@ const setupMaterialListener = (currentUserId, optionalQuery = []) => {
         snapshot.forEach(doc => {
             allMaterials.push({ id: doc.id, ...doc.data() });
         });
+        
+        let filteredMaterials = allMaterials;
 
-        // नए timestamp के अनुसार client-side पर सामग्री को sort करें।
-        allMaterials.sort((a, b) => {
+        if (searchMaterialName) {
+            const lowerCaseSearch = searchMaterialName.toLowerCase();
+            filteredMaterials = allMaterials.filter(item => 
+                item.material && item.material.toLowerCase().includes(lowerCaseSearch)
+            );
+        }
+
+        filteredMaterials.sort((a, b) => {
             const timestampA = a.timestamp ? a.timestamp.toDate() : new Date(0);
             const timestampB = b.timestamp ? b.timestamp.toDate() : new Date(0);
             return timestampB - timestampA;
         });
         
-        // केवल नवीनतम खरीद प्रदर्शित करें
-        const latestMaterials = getLatestMaterials(allMaterials);
+        const latestMaterials = getLatestMaterials(filteredMaterials);
         displayMaterials(latestMaterials);
     }, (error) => {
         console.error("Error listening to materials: ", error);
@@ -294,7 +303,8 @@ const deleteMaterial = async () => {
     }
 
     try {
-        const collectionPath = `/artifacts/${appId}/users/${user.uid}/materials`;
+        // FIX: सीधे user-specific collection path का उपयोग करें
+        const collectionPath = `artifacts/${appId}/users/${user.uid}/materials`;
         const docRef = doc(db, collectionPath, selectedMaterialIdForDeletion);
         await deleteDoc(docRef);
         showMessage('Material deleted successfully!', 'success');
@@ -317,6 +327,11 @@ closeModalBtn.addEventListener('click', () => {
     searchOptions.classList.remove('hidden');
     materialSearchForm.classList.add('hidden');
     dateSearchForm.classList.add('hidden');
+    
+    const user = auth.currentUser;
+    if (user) {
+        setupMaterialListener(user.uid);
+    }
 });
 
 closeHistoryModalBtn.addEventListener('click', () => {
@@ -336,26 +351,28 @@ searchByDateBtn.addEventListener('click', () => {
 materialSearchForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const materialName = document.getElementById('materialName').value.trim();
-    if (materialName) {
-        const user = auth.currentUser;
-        const searchQueries = [where('material', '==', materialName)];
-        setupMaterialListener(user.uid, searchQueries);
+    const user = auth.currentUser;
+    if (user) {
+        const searchQueries = []; 
+        setupMaterialListener(user.uid, searchQueries, materialName);
         searchModal.classList.add('hidden');
         searchOptions.classList.remove('hidden');
         materialSearchForm.classList.add('hidden');
+    } else {
+        showMessage('Please enter a material name.', 'error');
     }
 });
 
 dateSearchForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const purchaseDateStr = document.getElementById('purchaseDate').value;
-    if (purchaseDateStr) {
+    const user = auth.currentUser;
+    if (user && purchaseDateStr) {
         const startDate = new Date(purchaseDateStr);
         startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(purchaseDateStr);
         endDate.setHours(23, 59, 59, 999);
         
-        const user = auth.currentUser;
         const searchQueries = [
             where('timestamp', '>=', Timestamp.fromDate(startDate)),
             where('timestamp', '<=', Timestamp.fromDate(endDate))
@@ -364,6 +381,9 @@ dateSearchForm.addEventListener('submit', (e) => {
         searchModal.classList.add('hidden');
         searchOptions.classList.remove('hidden');
         dateSearchForm.classList.add('hidden');
+    } else if (user) {
+        setupMaterialListener(user.uid);
+        searchModal.classList.add('hidden');
     }
 });
 
@@ -372,7 +392,7 @@ confirmDeleteBtn.addEventListener('click', deleteMaterial);
 closeDeleteModalBtn.addEventListener('click', () => deleteModal.classList.add('hidden'));
 cancelDeleteBtn.addEventListener('click', () => deleteModal.classList.add('hidden'));
 
-// Drawer toggle logic (reused from index.html)
+// Drawer toggle logic
 document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('hamburgerBtn');
     const drawer = document.getElementById('drawerNav');

@@ -65,8 +65,9 @@ const setupAuthCheck = async () => {
  * Sets up a real-time listener for the products collection for the current user.
  * @param {string} currentUserId - The ID of the currently logged-in user.
  * @param {object} optionalQuery - An optional Firestore query to apply a filter.
+ * @param {string} searchProductName - Case-insensitive search के लिए product का नाम.
  */
-const setupProductPriceListener = (currentUserId, optionalQuery = []) => {
+const setupProductPriceListener = (currentUserId, optionalQuery = [], searchProductName = null) => {
     if (unsubscribe) {
         unsubscribe(); // Unsubscribe from the previous listener
     }
@@ -77,15 +78,23 @@ const setupProductPriceListener = (currentUserId, optionalQuery = []) => {
         return;
     }
 
-    const collectionPath = `/artifacts/${appId}/users/${currentUserId}/products`;
+    // FIX: सीधे user-specific collection path का उपयोग करें
+    const collectionPath = `artifacts/${appId}/users/${currentUserId}/products`;
     let baseQuery = collection(db, collectionPath);
     let finalQuery = query(baseQuery, ...optionalQuery);
     
     unsubscribe = onSnapshot(finalQuery, (snapshot) => {
-        const productPrices = [];
+        let productPrices = [];
         snapshot.forEach(doc => {
             productPrices.push({ id: doc.id, ...doc.data() });
         });
+
+        if (searchProductName) {
+            const lowerCaseSearch = searchProductName.toLowerCase();
+            productPrices = productPrices.filter(item => 
+                item.name && item.name.toLowerCase().includes(lowerCaseSearch)
+            );
+        }
 
         // Sort data on the client-side alphabetically by product name
         productPrices.sort((a, b) => {
@@ -219,7 +228,8 @@ const deleteProductPrice = async () => {
     }
 
     try {
-        const collectionPath = `/artifacts/${appId}/users/${user.uid}/products`;
+        // FIX: सीधे user-specific collection path का उपयोग करें
+        const collectionPath = `artifacts/${appId}/users/${user.uid}/products`;
         const docRef = doc(db, collectionPath, selectedProductIdForDeletion);
         await deleteDoc(docRef);
         showMessage('Product price deleted successfully!', 'success');
@@ -244,10 +254,14 @@ searchBtn.addEventListener('click', () => {
 
 closeModalBtn.addEventListener('click', () => {
     searchModal.classList.add('hidden');
-    // Hide search forms and show options again
     searchOptions.classList.remove('hidden');
     productSearchForm.classList.add('hidden');
     dateSearchForm.classList.add('hidden');
+    
+    const user = auth.currentUser;
+    if (user) {
+        setupProductPriceListener(user.uid);
+    }
 });
 
 searchByProductBtn.addEventListener('click', () => {
@@ -265,8 +279,8 @@ productSearchForm.addEventListener('submit', (e) => {
     const productName = document.getElementById('productName').value.trim();
     const user = auth.currentUser;
     if (user) {
-        const searchQueries = productName ? [where('name', '==', productName)] : [];
-        setupProductPriceListener(user.uid, searchQueries);
+        const searchQueries = [];
+        setupProductPriceListener(user.uid, searchQueries, productName);
         searchModal.classList.add('hidden');
     }
 });
@@ -288,14 +302,13 @@ dateSearchForm.addEventListener('submit', (e) => {
         setupProductPriceListener(user.uid, searchQueries);
         searchModal.classList.add('hidden');
     } else if (user) {
-        // If date is empty, reload all data
         setupProductPriceListener(user.uid);
         searchModal.classList.add('hidden');
     }
 });
 
 
-// Drawer toggle logic (reused from other pages)
+// Drawer toggle logic
 document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('hamburgerBtn');
     const drawer = document.getElementById('drawerNav');
@@ -339,7 +352,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Drawer elements not found. Check your HTML IDs.');
     }
     
-    // Fix for the Uncaught TypeError.
     if (logoutLink) {
         logoutLink.addEventListener('click', async (e) => {
             e.preventDefault();

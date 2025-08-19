@@ -57,4 +57,14 @@ const initializeFirebase = async () => {
     });
 };
 
-export { db, auth, userId, appId, initializeFirebase, collection, onSnapshot, addDoc, getDocs, doc, setDoc, query, where, Timestamp, getDoc };
+/**
+ * Creates a public collection path for shared data.
+ * @param {string} collectionName The name of the public collection (e.g., 'materials', 'products').
+ * @returns {string} The full Firestore path for the public collection.
+ */
+function getPublicCollectionPath(collectionName) {
+    return `/artifacts/${appId}/public/data/${collectionName}`;
+}
+
+export { db, auth, userId, appId, initializeFirebase, collection, onSnapshot, addDoc, getDocs, doc, setDoc, query, where, Timestamp, getDoc, getPublicCollectionPath };
+

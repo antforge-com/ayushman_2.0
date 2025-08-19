@@ -1,6 +1,8 @@
+// add-material.js
 import { db, userId, appId, initializeFirebase, collection, addDoc, Timestamp } from "./firebase-config.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { doc, getDoc, updateDoc, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { auth } from "./firebase-config.js";
 
 // Access DOM elements
 const materialInput = document.getElementById('material');
@@ -25,6 +27,9 @@ const stockGroup = document.getElementById('stockGroup');
 const costPerUnitGroup = document.getElementById('costPerUnitGroup');
 const minQuantityInput = document.getElementById('minQuantity');
 const minQuantityUnitSelect = document.getElementById('minQuantityUnit');
+const gstInput = document.getElementById('gst');
+const hamaliInput = document.getElementById('hamali');
+const transportationInput = document.getElementById('transportation');
 
 
 let currentBillPhotoUrl = null; // To store the current bill photo URL in edit mode
@@ -62,6 +67,7 @@ function updatePriceLabel() {
         pricePerUnitInput.placeholder = "Price per kg";
         // Convert price if unit changes
         if (oldUnit === 'gram' && pricePerUnitInput.value && !isNaN(parseFloat(pricePerUnitInput.value))) {
+            // FIX: Convert price from per gram to per kg
             pricePerUnitInput.value = (parseFloat(pricePerUnitInput.value) * 1000).toFixed(4); // Increased precision
         }
     } else {
@@ -69,13 +75,12 @@ function updatePriceLabel() {
         pricePerUnitInput.placeholder = "Price per gram";
         // Convert price if unit changes
         if (oldUnit === 'kg' && pricePerUnitInput.value && !isNaN(parseFloat(pricePerUnitInput.value))) {
+            // FIX: Convert price from per kg to per gram
             pricePerUnitInput.value = (parseFloat(pricePerUnitInput.value) / 1000).toFixed(6); // Increased precision
         }
     }
-    // Re-calculate prices after unit change, but only if it's not a new material
-    if (!isNewMaterial) {
-        calculatePrices();
-    }
+    // FIX: Always call calculatePrices after a unit change to ensure all fields are up-to-date
+    calculatePrices();
 }
 
 /**
@@ -86,15 +91,18 @@ function calculatePrices() {
     const purchaseQuantity = parseFloat(quantityInput.value) || 0;
     const purchasePricePerUnit = parseFloat(pricePerUnitInput.value) || 0;
     const purchaseUnit = quantityUnitSelect.value;
+    // FIX: Get values from new fields for calculation
+    const gstAmount = parseFloat(gstInput.value) || 0;
+    const hamaliAmount = parseFloat(hamaliInput.value) || 0;
+    const transportationAmount = parseFloat(transportationInput.value) || 0;
 
-    let purchasePrice = 0;
+    let calculatedPurchasePrice = 0;
     if (!isNaN(purchaseQuantity) && !isNaN(purchasePricePerUnit)) {
-        purchasePrice = purchaseQuantity * purchasePricePerUnit;
+        // FIX: Calculate total price including GST, Hamali, and Transportation
+        calculatedPurchasePrice = (purchaseQuantity * purchasePricePerUnit) + gstAmount + hamaliAmount + transportationAmount;
     }
-    priceInput.value = purchasePrice.toFixed(4);
+    priceInput.value = calculatedPurchasePrice.toFixed(4);
     
-    // Only perform calculations if it's not a new material.
-    // New materials' stock is entered manually first, but cost is always calculated.
     if (!isNewMaterial) {
         // Calculate the new total stock
         let newTotalStock = 0;
@@ -115,13 +123,14 @@ function calculatePrices() {
         if (newTotalStock > 0) {
             // Calculate total value of previous stock and new purchase
             const previousTotalValue = normalizedPreviousStock * previousCostPerUnit;
-            const purchaseTotalValue = purchaseQuantity * pricePerUnitInput.value;
+            // FIX: Use the calculatedPurchasePrice instead of a simple multiplication
+            const purchaseTotalValue = calculatedPurchasePrice;
             newCostPerUnit = (previousTotalValue + purchaseTotalValue) / newTotalStock;
         }
         updatedCostPerUnitInput.value = newCostPerUnit.toFixed(6);
     } else {
-        // For new material, the cost per unit is simply the price per unit of the current purchase
-        updatedCostPerUnitInput.value = purchasePricePerUnit.toFixed(6);
+        // For new material, the cost per unit is the calculated purchase price divided by the quantity
+        updatedCostPerUnitInput.value = (calculatedPurchasePrice / purchaseQuantity).toFixed(6);
         stockInput.value = purchaseQuantity.toFixed(4);
     }
 }
@@ -158,12 +167,11 @@ function handleFileSelect() {
 async function fetchLatestMaterialData(materialName) {
     try {
         await initializeFirebase();
-        if (!db || !userId) {
-            console.error("User is not authenticated. Cannot fetch data.");
+        if (!db) {
+            console.error("Firestore not initialized. Cannot fetch data.");
             return null;
         }
-
-        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
+        const collectionPath = `artifacts/${appId}/users/${auth.currentUser.uid}/materials`;
         
         // Query to get the latest record by timestamp
         const q = query(
@@ -251,6 +259,10 @@ quantityInput.addEventListener('input', calculatePrices);
 quantityUnitSelect.addEventListener('change', updatePriceLabel);
 pricePerUnitInput.addEventListener('input', calculatePrices);
 fileInput.addEventListener('change', handleFileSelect);
+// FIX: Add event listeners for the new fields to trigger calculation
+gstInput.addEventListener('input', calculatePrices);
+hamaliInput.addEventListener('input', calculatePrices);
+transportationInput.addEventListener('input', calculatePrices);
 
 
 materialForm.addEventListener('submit', async (e) => {
@@ -270,7 +282,7 @@ materialForm.addEventListener('submit', async (e) => {
         
         // Get data from the form
         const existingMaterialId = materialIdInput.value;
-        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
+        const collectionPath = `artifacts/${appId}/users/${auth.currentUser.uid}/materials`;
         
         // Final calculation before saving
         calculatePrices();
@@ -283,21 +295,21 @@ materialForm.addEventListener('submit', async (e) => {
             quantity: parseFloat(form.quantity.value),
             quantityUnit: form.quantityUnit.value,
             pricePerUnit: parseFloat(form.pricePerUnit.value),
+            // FIX: `price` field now stores the total calculated price
             price: parseFloat(priceInput.value),
-            gst: parseFloat(form.gst.value),
-            hamali: parseFloat(form.hamali.value),
-            transportation: parseFloat(form.transportation.value),
-            minQuantity: parseFloat(minQuantityInput.value),
+            gst: parseFloat(form.gst.value) || 0,
+            hamali: parseFloat(form.hamali.value) || 0,
+            transportation: parseFloat(form.transportation.value) || 0,
+            minQuantity: parseFloat(minQuantityInput.value) || 0,
             minQuantityUnit: minQuantityUnitSelect.value,
-            // These fields are either calculated or manually entered based on `isNewMaterial`
             stock: parseFloat(stockInput.value),
             updatedCostPerUnit: parseFloat(updatedCostPerUnitInput.value),
         };
 
-        // If it's a new material, the purchase quantity is the initial stock
+        // If it's a new material, the updated cost is the total cost divided by quantity
         if (isNewMaterial) {
              dataToSave.stock = parseFloat(form.quantity.value);
-             dataToSave.updatedCostPerUnit = parseFloat(form.pricePerUnit.value);
+             dataToSave.updatedCostPerUnit = (parseFloat(priceInput.value) / parseFloat(form.quantity.value)) || 0;
         }
 
         let billPhotoUrl = currentBillPhotoUrl;
@@ -386,11 +398,11 @@ window.addEventListener('load', async () => {
 async function loadMaterialForEdit(materialId) {
     try {
         await initializeFirebase();
-        if (!db || !userId) {
-            throw new Error("User is not authenticated. Cannot load data.");
+        if (!db) {
+            throw new Error("Firestore instance not available. Cannot load data.");
         }
 
-        const collectionPath = `/artifacts/${appId}/users/${userId}/materials`;
+        const collectionPath = `artifacts/${appId}/users/${auth.currentUser.uid}/materials`;
         const materialDocRef = doc(db, collectionPath, materialId);
         const materialDoc = await getDoc(materialDocRef);
 
